@@ -13,7 +13,6 @@ logger = LoggerFactory.setup_logging("logger", log_file=pathutils.combine_path(
     f"{config.model_name}_{config.image_size}_{config.model_weights}",
     f"train__{pathutils.get_datetime()}.log"))
 
-
 def evaluate_model(this_config=config):
     # initialize the computation device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
