@@ -1,0 +1,12 @@
+[
+    {
+        "MODEL_NAME": "efficientnet_v2_m",
+        "MODEL_IMAGESIZE": 400,
+        "NUM_EPOCHS": 2
+    },
+    {
+        "MODEL_NAME": "resnet50",
+        "MODEL_IMAGESIZE": 400,
+        "LEARNING_RATE": 3
+    }
+]

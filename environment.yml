@@ -1,0 +1,26 @@
+name: multilabelimage_model_env
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=12.1
+  - tensorboard
+  - opencv
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - tqdm
+  - pillow
+  - numpy
+  - scipy
+  - pip
+  - pip:
+      - torch-summary
+      - tensorboard
+      - torch-tb-profiler

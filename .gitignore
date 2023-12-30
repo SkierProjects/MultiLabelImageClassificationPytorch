@@ -1,0 +1,15 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/inference_inputs
+/outputs
+/tensorboard_logs
+/ven
+/env
+/logs
+/MultiClassImageClassification.zip
+/src/__pycache__
+__pycache__/
+Dataset/dataset.csv
