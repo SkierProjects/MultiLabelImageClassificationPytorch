@@ -1,5 +1,6 @@
 from sklearn.metrics import f1_score as sklearnf1, precision_score, recall_score
 import numpy as np
+import torch
 
 def f1_score(targets, predictions, average='micro'):
     """
@@ -72,3 +73,10 @@ def getpredictions_with_threshold(outputs, threshold=0.5):
     # Apply threshold to the probabilities to get binary predictions
     predictions = (probabilities > threshold).astype(int)  # Convert to integer type
     return predictions
+
+def convert_labels_to_strings(labels, index_to_tag):
+    labels = labels.tolist() if isinstance(labels, torch.Tensor) else labels
+    return (index_to_tag[i] for i, label in enumerate(labels) if label == 1)
+
+def convert_labels_to_string(labels, index_to_tag):
+    return ','.join(convert_labels_to_strings(labels, index_to_tag))

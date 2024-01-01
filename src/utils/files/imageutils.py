@@ -1,8 +1,14 @@
 from src.config import config
 import torchvision.transforms as transforms
 import torch
-from PIL import ImageDraw
+from PIL import ImageDraw, Image, ImageFont
 import matplotlib.pyplot as plt
+from torchvision.transforms import Compose, Resize, Normalize, ToTensor
+import cv2
+from torchvision.transforms.functional import to_pil_image
+import numpy as np
+
+from utils.metrics import metricutils
 
 def denormalize_images(images, config=config):
     """
@@ -25,7 +31,7 @@ def denormalize(tensor, mean, std):
         t.mul_(s).add_(m)  # De-normalize
     return torch.clamp(tensor, 0, 1)
 
-def overlay_predictions(images, true_labels, predictions, index_to_tag):
+def overlay_predictions_batch(images, predictions, index_to_tag, true_labels=None):
     """
     Overlays prediction and ground truth labels on images.
 
@@ -40,26 +46,96 @@ def overlay_predictions(images, true_labels, predictions, index_to_tag):
     """
     annotated_images = []
     for img, true_label_vec, pred_label_vec in zip(images, true_labels, predictions):
-        # If the image is a tensor, convert it to a PIL Image first
-        if isinstance(img, torch.Tensor):
-            img = transforms.ToPILImage()(img)
-            
-        draw = ImageDraw.Draw(img)
-        # Convert tensors to lists if they are not already
-        true_label_list = true_label_vec.tolist() if isinstance(true_label_vec, torch.Tensor) else true_label_vec
-        pred_label_list = pred_label_vec.tolist() if isinstance(pred_label_vec, torch.Tensor) else pred_label_vec
-
-        # Generate the label text using the index_to_tag mapping
-        true_label_text = ','.join(index_to_tag[i] for i, label in enumerate(true_label_list) if label == 1)
-        pred_label_text = ','.join(index_to_tag[i] for i, label in enumerate(pred_label_list) if label == 1)
-
-        # Prepare text to be overlayed on the image
-        text = f"True: {true_label_text}\nPred: {pred_label_text}"
-        
-        draw.text((0, 0), text, (57, 255, 20))  # Green text, top-left corner
-        annotated_images.append(img)
+        annotated_images.append(overlay_predictions(img, pred_label_vec, index_to_tag, true_label_vec))
 
     return annotated_images
+
+def overlay_predictions(image, predictions, index_to_tag, true_labels=None):
+    """
+    Overlays prediction and ground truth labels on images.
+
+    Parameters:
+        image (PIL.Image or torch.Tensor): Single image to annotate.
+        true_labels (torch.Tensor or list): True labels for the image.
+        predictions (torch.Tensor or list): Predicted labels for the image.
+        index_to_tag (dict): Mapping from label indices to tag names.
+
+    Returns:
+        PIL.Image: Annotated image.
+    """
+    # If the image is a tensor, convert it to a PIL Image first
+    if isinstance(image, torch.Tensor):
+        image = transforms.ToPILImage()(image)
+
+    # Get the size of the image
+    width, height = image.size
+    
+    # Set the font size to be proportional to the width of the image
+    font_size = int(width * 0.03)  # You can adjust the 0.03 factor as needed
+    font = ImageFont.truetype("arial.ttf", font_size)  # You can choose a different font if you like
+
+    draw = ImageDraw.Draw(image)
+
+    pred_label_text = metricutils.convert_labels_to_string(predictions, index_to_tag)
+    if true_labels is not None:
+        true_label_text = metricutils.convert_labels_to_string(true_labels, index_to_tag)
+        # Prepare text to be overlayed on the image
+        text = f"True: {true_label_text}\nPred: {pred_label_text}"
+    else:
+        text = f"Pred: {pred_label_text}"
+
+    # Set text position to be proportional to the size of the image
+    text_x = width * 0.01  # You can adjust the 0.01 factor as needed
+    text_y = height * 0.01  # You can adjust the 0.01 factor as needed
+
+    # Draw the text on the image with the proportional font size
+    draw.text((text_x, text_y), text, (57, 255, 20), font=font)  # Green text, top-left corner
+
+    return image
+
+def overlay_predictions_video(video_path, predictions,frame_counts, index_to_tag, output_path):
+    # Open the input video
+    video_capture = cv2.VideoCapture(str(video_path))
+    fps = video_capture.get(cv2.CAP_PROP_FPS)
+    width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+
+    # Create a VideoWriter object to save the annotated video
+    video_writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+    # Initialize variables to track the most recent predictions
+    last_prediction = None
+    frame_idx = 0
+    pred_idx = 0
+
+    # Process the frames and overlay predictions
+    while True:
+        ret, frame = video_capture.read()
+        if not ret:
+            break
+        
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        pil_image = Image.fromarray(frame_rgb)
+        # Update last_prediction if the current frame is one of the predicted frames
+        if pred_idx < len(frame_counts) and frame_idx == frame_counts[pred_idx]:
+            last_prediction = predictions[pred_idx]
+            pred_idx += 1
+
+        # If there are predictions available, overlay them on the frame
+        if last_prediction is not None:
+            annotated_image = overlay_predictions(pil_image, last_prediction, index_to_tag)
+            # Convert back to OpenCV image
+            frame = cv2.cvtColor(np.array(annotated_image), cv2.COLOR_RGB2BGR)
+
+        # Write the frame to the output video
+        video_writer.write(frame)
+        frame_idx += 1
+
+    # Release resources
+    video_capture.release()
+    video_writer.release()
+
 
 def convert_labels_to_color(labels, num_classes, height=10, width=10):
     """
@@ -125,3 +201,19 @@ def convert_to_PIL(images):
     """
     to_pil = transforms.ToPILImage()
     return [to_pil(image) for image in images]
+
+def preprocess_image(image_path, config):
+    """Preprocess an image file to be suitable for model input.
+
+     Parameters:
+        image_path (str): Path of the image to process.
+        config (object): Configuration desired image size and normalization parameters.
+    
+    """
+    transforms = Compose([
+        Resize(config.image_size),  # Resize to the input size expected by the model
+        ToTensor(),          # Convert to PyTorch Tensor
+        Normalize(config.dataset_normalization_mean, config.dataset_normalization_std) # Normalize with the same values used in training
+    ])
+    image = Image.open(image_path)
+    return transforms(image).unsqueeze(0)  # Add batch dimension

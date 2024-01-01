@@ -23,7 +23,8 @@ def evaluate_model(this_config=config):
 
     # intialize the model
     with ModelEvaluator.from_file(device, TensorBoardWriter(config=this_config), this_config) as modelEvaluator:
-        test_predictions, test_correct_labels, test_loss = modelEvaluator.predict(test_loader)
+        prediction_results = modelEvaluator.predict(test_loader)
+        test_predictions, test_correct_labels, test_loss = prediction_results['predictions'], prediction_results['true_labels'], prediction_results['avg_loss']
         f1, precision, recall = modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, modelEvaluator.epochs, 'Test', 'micro', 'Test', 0.5)
 
         logger.info(f"Test Loss: {test_loss}, F1: {f1}, Precision: {precision}, Recall: {recall}")

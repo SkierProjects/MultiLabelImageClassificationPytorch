@@ -108,90 +108,86 @@ class ModelEvaluator:
             tensorBoardWriter=tensorBoardWriter,
             epochs= epochs
         )
+    
+    def single_image_prediction(self, preprocessed_image, threshold=None):
+        """Run a prediction for a single preprocessed image."""
+        self.model.eval()  # Set the model to evaluation mode
         
-    def predict(self, data_loader):
+        # Move the preprocessed image to the same device as the model
+        preprocessed_image = preprocessed_image.to(self.device)
+        
+        with torch.no_grad():
+            # Add a batch dimension to the image tensor
+            image_batch = preprocessed_image.unsqueeze(0)
+            outputs = self.model(image_batch)
+            if threshold is not None:
+                # Move the outputs to the CPU and convert to NumPy before thresholding
+                outputs_np = outputs.cpu().numpy()
+                outputs_np = metricutils.getpredictions_with_threshold(outputs_np, threshold)
+                # Wrap the NumPy array back into a PyTorch tensor if necessary
+                outputs = torch.from_numpy(outputs_np)
+            # Remove the batch dimension from the outputs before returning
+            outputs = outputs.squeeze(0)
+        return outputs
+        
+    def predict(self, data_loader, return_true_labels=True, threshold=None):
         """
         Perform inference on the given data_loader and return raw predictions.
 
         Parameters:
             data_loader (DataLoader): DataLoader for inference.
+            return_true_labels (bool): If true, return true labels. Otherwise, skip label processing.
 
         Returns:
             prediction_labels (numpy.ndarray): Raw model outputs.
-            true_labels (numpy.ndarray): Corresponding true labels.
+            true_labels (numpy.ndarray, optional): Corresponding true labels, if available and requested.
+            avg_loss (float, optional): Average loss over dataset, if labels are available.
         """
         self.model.eval()  # Set the model to evaluation mode
-        prediction_labels = []  # List to store all raw model outputs
-        true_labels = []  # List to store all labels
+        prediction_outputs = []  # List to store all raw model outputs
+        true_labels = []  # List to store all labels if they are available
+        image_paths = [] # List to store all image paths if they are available
+        frame_counts = [] # List to store all frame counts if they are available
         total_loss = 0.0  # Initialize total loss
 
         with torch.no_grad():  # Disable gradient calculation for efficiency
             for batch in tqdm(data_loader, total=len(data_loader)):
-                images, labels = batch['image'].to(self.device), batch['label'].to(self.device)
-
+                images = batch['image'].to(self.device)
                 outputs = self.model(images)
-                loss = self.criterion(outputs, labels.float())  # Calculate loss
-                total_loss += loss.item()  # Accumulate loss
-                prediction_labels.append(outputs.cpu().numpy())  # Store raw model outputs
-                true_labels.append(labels.cpu().numpy())  # Store labels
+                prediction_outputs.append(outputs.cpu().numpy())  # Store raw model outputs
+                
+                # Process labels if they are available and requested
+                if return_true_labels and 'label' in batch:
+                    labels = batch['label'].to(self.device)
+                    loss = self.criterion(outputs, labels.float())  # Calculate loss
+                    total_loss += loss.item()  # Accumulate loss
+                    true_labels.append(labels.cpu().numpy())  # Store labels
+                elif not return_true_labels and 'image_path' in batch:
+                    image_paths.append(batch['image_path'])
+                elif not return_true_labels and 'frame_count' in batch:
+                    frame_counts.append(batch['frame_count'])
 
-        # Concatenate all raw outputs and labels from all batches
-        prediction_labels = np.vstack(prediction_labels)
-        true_labels = np.vstack(true_labels)
+        # Concatenate all raw outputs and optionally labels from all batches
+        prediction_outputs = np.vstack(prediction_outputs)
+        results = {'predictions': prediction_outputs}
+        
+        if return_true_labels and true_labels:
+            true_labels = np.vstack(true_labels)
+            avg_loss = total_loss / len(data_loader.dataset)
+            results['true_labels'] = true_labels
+            results['avg_loss'] = avg_loss
 
-        # Calculate average loss
-        avg_loss = total_loss / len(data_loader.dataset)
+        if image_paths:
+            results['image_paths'] = image_paths
 
-        return prediction_labels, true_labels, avg_loss
+        if frame_counts:
+            results['frame_counts'] = frame_counts
 
-    def evaluate_old(self, data_loader, epoch, datasetSubset, metricMode=None, threshold=None):
-        """
-        Evaluate the model on the given data_loader.
+        if threshold != None:
+            predictions_binary = metricutils.getpredictions_with_threshold(prediction_outputs, threshold)
+            results['predictions'] = predictions_binary
 
-        Parameters:
-            data_loader (DataLoader): DataLoader for evaluation.
-            epoch (int): The current epoch number, used for TensorBoard logging.
-            datasetSubset (str): Indicates the subset of data evaluated (e.g., 'test', 'validation').
-            metricMode (str, optional): Indicates the type of metric to log ('binary', 'multiclass', etc.).
-            threshold (float, optional): The threshold value for binary predictions.
-
-        Returns:
-            avg_loss (float): The average loss over the dataset.
-            f1_score (float): The F1 score of the model on the dataset.
-        """
-        self.model.eval()  # Set the model to evaluation mode
-        total_loss = 0.0  # Initialize total loss
-        all_preds = []  # List to store all predictions
-        all_labels = []  # List to store all labels
-        random_batch_index = random.randint(0, len(data_loader) - 1)  # Pick a random batch for TensorBoard logging
-
-        with torch.no_grad():  # Disable gradient calculation for efficiency
-            for i, batch in enumerate(tqdm(data_loader, total=len(data_loader))):
-                images, labels = batch['image'].to(self.device), batch['label'].to(self.device)
-                outputs = self.model(images)
-                loss = self.criterion(outputs, labels.float())  # Calculate loss
-                total_loss += loss.item()  # Accumulate loss
-
-                predictions = metricutils.getpredictions_with_threshold(outputs, threshold=threshold)
-                all_preds.append(predictions.cpu().numpy())  # Store predictions
-                all_labels.append(labels.cpu().numpy())  # Store labels
-
-                # Log images with predictions to TensorBoard for a random batch, if configured
-                if metricMode is not None and self.tensorBoardWriter is not None and i == random_batch_index:
-                    self.tensorBoardWriter.write_image_test_results(images, labels, predictions, epoch, metricMode, datasetSubset)
-
-        # Concatenate all predictions and labels from all batches
-        all_preds_binary = np.vstack(all_preds)
-        all_labels_binary = np.vstack(all_labels)
-
-        # Calculate F1 score
-        f1_score = metricutils.f1_score(all_labels_binary, all_preds_binary)
-
-        # Calculate average loss
-        avg_loss = total_loss / len(data_loader.dataset)
-
-        # Return the average loss and F1 score
-        return avg_loss, f1_score
+        return results
 
     def evaluate_predictions(self, data_loader, prediction_outputs, true_labels, epoch, datasetSubset, average, metricMode=None, threshold=None):
         """
@@ -227,7 +223,7 @@ class ModelEvaluator:
             end_index = min((random_batch_index + 1) * data_loader.batch_size, len(predictions_binary))
 
             selected_predictions = predictions_binary[start_index:end_index]
-            selected_predictions_tensor = torch.tensor(selected_predictions, device=images.device, dtype=torch.float32)
+            selected_predictions_tensor = torch.tensor(selected_predictions, device=self.device, dtype=torch.float32)
             self.tensorBoardWriter.write_image_test_results(images, labels, selected_predictions_tensor, epoch, metricMode, datasetSubset)
 
         # Return the average loss and computed metrics
@@ -250,7 +246,8 @@ class ModelEvaluator:
             f1_score (float): The F1 score of the model on the dataset.
         """
         # Perform inference and get raw outputs
-        all_outputs, all_labels, avg_loss = self.predict(data_loader)
+        prediction_results = self.predict(data_loader)
+        all_outputs, all_labels, avg_loss = prediction_results['predictions'], prediction_results['true_labels'], prediction_results['avg_loss']
 
         f1, precision, recall = self.evaluate_predictions(data_loader, all_outputs, all_labels, epoch, datasetSubset, average, metricMode,threshold)
 

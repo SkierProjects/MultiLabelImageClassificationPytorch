@@ -13,3 +13,4 @@
 /src/__pycache__
 __pycache__/
 Dataset/dataset.csv
+/inference_outputs

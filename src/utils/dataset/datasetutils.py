@@ -1,5 +1,5 @@
 import pandas as pd
-from utils.dataset.dataset import ImageDataset
+from src.utils.dataset.image_dataset import ImageDataset
 from torch.utils.data import DataLoader
 import utils.files.pathutils as pathutils
 
