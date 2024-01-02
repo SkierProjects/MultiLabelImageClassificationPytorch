@@ -23,8 +23,8 @@ class ImageDataset(Dataset):
         - config: Config, configuration object containing dataset parameters.
         - random_state: int, random state for reproducible train-test splits.
         """
-        if mode not in ['train', 'valid', 'test']:
-            raise ValueError("Mode must be 'train', 'valid', or 'test'.")
+        if mode not in ['train', 'valid', 'test', 'valid+test']:
+            raise ValueError("Mode must be 'train', 'valid', 'test', or 'valid+test'.")
         
         self.csv = csv
         self.config = config

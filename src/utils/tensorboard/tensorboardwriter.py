@@ -44,7 +44,7 @@ class TensorBoardWriter():
         """
         denormalized_images = imageutils.denormalize_images(images, self.config)
         pil_images = imageutils.convert_to_PIL(denormalized_images)
-        overlaid_images = imageutils.overlay_predictions_batch(pil_images, true_labels.cpu().tolist(), predictions.cpu().tolist(), datasetutils.get_dataset_tag_mappings(self.config))
+        overlaid_images = imageutils.overlay_predictions_batch(pil_images, predictions.cpu().tolist(), datasetutils.get_dataset_tag_mappings(self.config), true_labels.cpu().tolist())
         tensor_overlaid_images = imageutils.convert_PIL_to_tensors(overlaid_images)
         self.add_images(f'{runmode}/{dataSubset}/Images', denormalized_images, step)
         self.add_images(f'{runmode}/{dataSubset}/True Labels', imageutils.convert_labels_to_color(true_labels.cpu(), self.config.num_classes), step)

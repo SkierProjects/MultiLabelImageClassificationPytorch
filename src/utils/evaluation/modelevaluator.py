@@ -1,6 +1,6 @@
 # evaluator.py
 import torch
-from src.utils.logging.loggerfactory import LoggerFactory
+from utils.logging.loggerfactory import LoggerFactory
 import utils.files.pathutils as pathutils
 import utils.models.modelfactory as modelfactory
 from src.config import config
@@ -204,14 +204,14 @@ class ModelEvaluator:
             threshold (float, optional): The threshold value for binary predictions.
 
         Returns:
-            avg_loss (float): The average loss over the dataset.
             f1_score (float): The F1 score of the model on the dataset.
+            precision (float): The precision of the model on the dataset.
+            recall (float): The recall of the model on the dataset.
         """
 
         predictions_binary = metricutils.getpredictions_with_threshold(prediction_outputs, threshold)
         # Compute evaluation metrics
-        precision, recall, f1 = metricutils.compute_metrics(true_labels, predictions_binary, threshold=threshold, average=average)
-
+        precision, recall, f1 = metricutils.compute_metrics(true_labels, predictions_binary, average=average)
         # Log images with predictions to TensorBoard for a random batch, if configured
         if metricMode is not None and self.tensorBoardWriter is not None:
             random_batch_index = random.randint(0, len(data_loader) - 1)
@@ -244,6 +244,8 @@ class ModelEvaluator:
         Returns:
             avg_loss (float): The average loss over the dataset.
             f1_score (float): The F1 score of the model on the dataset.
+            precision (float): The precision of the model on the dataset.
+            recall (float): The recall of the model on the dataset.
         """
         # Perform inference and get raw outputs
         prediction_results = self.predict(data_loader)

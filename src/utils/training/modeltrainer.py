@@ -52,13 +52,21 @@ class ModelTrainer():
             self.best_f1_score, epochs = modelloadingutils.load_model(modelToLoadPath, self.model,self.optimizer)
             self.start_epoch = epochs + 1
             self.epochs = self.epochs + self.start_epoch
-
             self.best_model_state = {
                 'epoch': epochs,
                 'model_state_dict': self.model.state_dict(),
                 'optimizer_state_dict': self.optimizer.state_dict(),
                 'loss': self.criterion,
                 'f1_score': self.best_f1_score,
+                'model_name': self.config.model_name,
+                'requires_grad': self.config.model_requires_grad,
+                'num_classes': self.config.num_classes,
+                'dropout': self.config.model_dropout_prob,
+                'embedding_layer': self.config.embedding_layer_enabled,
+                'gcn_enabled': self.config.gcn_enabled,
+                'batch_size': self.config.batch_size,
+                'optimizer': 'Adam',
+                'loss_function': 'BCEWithLogitsLoss'
             }
         else:
             self.best_f1_score = 0.0
@@ -209,6 +217,15 @@ class ModelTrainer():
                 'optimizer_state_dict': self.optimizer.state_dict(),
                 'loss': self.criterion,
                 'f1_score': self.best_f1_score,
+                'model_name': self.config.model_name,
+                'requires_grad': self.config.model_requires_grad,
+                'num_classes': self.config.num_classes,
+                'dropout': self.config.model_dropout_prob,
+                'embedding_layer': self.config.embedding_layer_enabled,
+                'gcn_enabled': self.config.gcn_enabled,
+                'batch_size': self.config.batch_size,
+                'optimizer': 'Adam',
+                'loss_function': 'BCEWithLogitsLoss'
             }
 
             modelloadingutils.save_best_model(self.best_model_state)

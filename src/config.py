@@ -4,11 +4,11 @@ class config:
     """
 
     # Default static property values
-    model_name = 'vit_b_16'
+    model_name = 'resnext50_32x4d'
     model_requires_grad = True
     num_classes = 31
     model_dropout_prob = 0.0
-    model_weights = 'IMAGENET1K_SWAG_E2E_V1'
+    model_weights = 'DEFAULT'
     image_size = 384
     batch_size = 48
     learning_rate = 1e-4
