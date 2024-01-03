@@ -72,5 +72,5 @@
 		"early_stopping_patience": 18,
 		"batch_size": 68,
 		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
-    },
+    }
 ]
