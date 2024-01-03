@@ -47,7 +47,7 @@ class ModelTrainer():
         self.last_valid_f1 = 0
         self.current_lr = self.config.learning_rate
         # Initialize TensorBoard writer
-        self.tensorBoardWriter = TensorBoardWriter()
+        self.tensorBoardWriter = TensorBoardWriter(config)
 
         modelToLoadPath = pathutils.get_model_to_load_path(self.config)
         if self.config.continue_training and os.path.exists(modelToLoadPath):
