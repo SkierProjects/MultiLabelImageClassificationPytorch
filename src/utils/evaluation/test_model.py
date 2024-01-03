@@ -5,6 +5,7 @@ from utils.tensorboard.tensorboardwriter import TensorBoardWriter
 from utils.metrics import metricutils
 import torch
 import utils.dataset.datasetutils as datasetutils
+import time
 # Set up logging for the training process
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
@@ -23,9 +24,29 @@ def evaluate_model(this_config=config):
         test_results = modelEvaluator.predict(test_loader)
         validtest_results = modelEvaluator.predict(valid_test_loader)
 
+        valid_start_time = time.time()
         valid_predictions, valid_correct_labels, valid_loss = valid_results['predictions'], valid_results['true_labels'], valid_results['avg_loss']
+        valid_end_time = time.time()
+        test_start_time = time.time()
         test_predictions, test_correct_labels, test_loss = test_results['predictions'], test_results['true_labels'], test_results['avg_loss']
+        test_end_time = time.time()
+        valid_test_start_time = time.time()
         validtest_predictions, validtest_correct_labels, validtest_loss = validtest_results['predictions'], validtest_results['true_labels'], validtest_results['avg_loss']
+        valid_test_end_time = time.time()
+
+        valid_elapsed_time = valid_end_time - valid_start_time
+        test_elapsed_time = test_end_time - test_start_time
+        valid_test_elapsed_time = valid_test_end_time - valid_test_start_time
+
+        valid_num_images = len(valid_loader.dataset)
+        test_num_images = len(test_loader.dataset)
+        valid_test_num_images = len(valid_test_loader.dataset)
+
+        valid_images_per_second = valid_num_images / valid_elapsed_time
+        test_images_per_second = test_num_images / test_elapsed_time
+        valid_test_images_per_second = valid_test_num_images / valid_test_elapsed_time
+
+        avg_images_per_second = (valid_images_per_second + test_images_per_second + valid_test_images_per_second) / 3
 
         logger.info(f"Validation Loss: {valid_loss}")
         logger.info(f"Test Loss: {test_loss}")
@@ -74,6 +95,10 @@ def evaluate_model(this_config=config):
             'F1/ValOptimizedThresholdPerClass/Test': test_f1_valoptimizedperclass,
             'Precision/ValOptimizedThresholdPerClass/Test': test_precision_valoptimizedperclass,
             'Recall/ValOptimizedThresholdPerClass/Test': test_recall_valoptimizedperclass,
+            'ImagesPerSecond/Validation': valid_images_per_second,
+            'ImagesPerSecond/Test': test_images_per_second,
+            'ImagesPerSecond/Valid+Test': valid_test_images_per_second,
+            'ImagesPerSecond/Average': avg_images_per_second
         }
         modelEvaluator.tensorBoardWriter.add_scalars_from_dict(final_metrics, epochs)
         modelEvaluator.tensorBoardWriter.add_hparams(hparams, final_metrics)

@@ -2,6 +2,8 @@ import utils.models.modelfactory as modelfactory
 import torch.nn as nn
 from tqdm import tqdm
 import torch.optim as optim
+import torch
+import gc
 import os
 import utils.files.pathutils as pathutils
 from src.utils.logging.loggerfactory import LoggerFactory
@@ -103,6 +105,10 @@ class ModelTrainer():
             traceback: Traceback object with details of where the exception occurred.
         """
         self.tensorBoardWriter.close_writer()
+        del self.model
+        del self.optimizer
+        torch.cuda.empty_cache()
+        gc.collect()
     
     def train(self):
         """

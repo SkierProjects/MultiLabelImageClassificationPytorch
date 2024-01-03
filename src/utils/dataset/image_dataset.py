@@ -1,4 +1,5 @@
 import torch
+import hashlib
 import cv2
 import numpy as np
 import torchvision.transforms as transforms
@@ -6,6 +7,7 @@ from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
 from src.config import config
 from src.utils.logging.loggerfactory import LoggerFactory
+import pandas as pd
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 class ImageDataset(Dataset):
@@ -32,18 +34,32 @@ class ImageDataset(Dataset):
         self.all_image_names = self.csv[:]['filepath']
         self.all_labels = np.array(self.csv.drop(['filepath'], axis=1))
         self.image_size = self.config.image_size
+        self.csv['identifier'] = self.csv['filepath'].apply(lambda x: x.split('/')[-1])
+        train_size = config.train_percentage
+        valid_size = config.valid_percentage
+        test_size = config.test_percentage
+        total_size = train_size + valid_size + test_size
+        if total_size > 100:
+            raise ValueError("The sum of train, valid, and test percentages should be <= 100.")
 
         # Convert self.all_image_names to a list if it's a pandas Series
         self.all_image_names = self.all_image_names.tolist()
-
-        # Shuffle and split the data
-        train_names, test_names, train_labels, test_labels = train_test_split(
-            self.all_image_names, self.all_labels, test_size=0.2, random_state=random_state)
-
-        # Further split the test set into validation and test sets
-        test_names, valid_names, test_labels, valid_labels = train_test_split(
-            test_names, test_labels, test_size=0.5, random_state=random_state)
         
+        # Perform a stable split
+        train_data, valid_data, test_data = stable_split(
+            self.csv, train_size, valid_size, test_size, random_state=random_state
+        )
+
+        # Map back to the original data format
+        train_names = train_data['filepath'].tolist()
+        train_labels = np.array(train_data.drop(['filepath', 'identifier'], axis=1))
+        
+        valid_names = valid_data['filepath'].tolist()
+        valid_labels = np.array(valid_data.drop(['filepath', 'identifier'], axis=1))
+
+        test_names = test_data['filepath'].tolist()
+        test_labels = np.array(test_data.drop(['filepath', 'identifier'], axis=1))
+
         # Concatenate validation and test sets to create valid+test set
         valid_test_names = np.concatenate((valid_names, test_names))
         valid_test_labels = np.vstack((valid_labels, test_labels))
@@ -119,5 +135,37 @@ class ImageDataset(Dataset):
         
         return {
             'image': image,
-            'label': torch.tensor(targets, dtype=torch.float32)
+            'label': torch.tensor(targets, dtype=torch.float32),
+            'image_path': image_path
         }
+    
+def stable_hash(x):
+    # Use a large prime number to take the modulus of the hash
+    large_prime = 2**61 - 1
+    return int(hashlib.sha256(x.encode('utf-8')).hexdigest(), 16) % large_prime
+
+def stable_split(data, train_percent, valid_percent, test_percent, random_state=None):
+    # Ensure that the sum of the sizes is <= 1
+    if train_percent + valid_percent + test_percent > 100:
+        raise ValueError("The sum of train, valid, and test sizes should be <= 100.")
+
+    if random_state is not None:
+        np.random.seed(random_state)  # Set random seed for reproducibility
+
+    # Assign a unique number to each element based on a hash of its identifier
+    hashed_ids = data['identifier'].apply(stable_hash)
+
+    # Calculate the split thresholds
+    train_threshold = np.percentile(hashed_ids, train_percent)
+    valid_threshold = np.percentile(hashed_ids, (train_percent + valid_percent))
+
+    # Determine the subset for each element based on its hashed ID
+    train_mask = hashed_ids < train_threshold
+    valid_mask = (hashed_ids >= train_threshold) & (hashed_ids < valid_threshold)
+    test_mask = hashed_ids >= valid_threshold
+
+    train_data = data[train_mask]
+    valid_data = data[valid_mask]
+    test_data = data[test_mask]
+
+    return train_data, valid_data, test_data

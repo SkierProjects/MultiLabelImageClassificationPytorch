@@ -5,13 +5,13 @@ class config:
     """
 
     # Default static property values
-    model_name = 'wide_resnet50_2'
+    model_name = 'regnet_y_16gf'
     model_requires_grad = True
     num_classes = 31
     model_dropout_prob = 0.0
-    model_weights = 'DEFAULT'
-    image_size = 400
-    batch_size = 52
+    model_weights = 'IMAGENET1K_SWAG_E2E_V1'
+    image_size = 224
+    batch_size = 68
     learning_rate = 1e-4
     num_epochs = 150
     continue_training = False
@@ -34,7 +34,9 @@ class config:
 
     dataset_normalization_mean = [0.4805, 0.3967, 0.3589]
     dataset_normalization_std = [0.3207, 0.2930, 0.2824]
-
+    train_percentage = 80
+    valid_percentage = 10
+    test_percentage = 10
 
     def __init__(self, config_path=None):
         """

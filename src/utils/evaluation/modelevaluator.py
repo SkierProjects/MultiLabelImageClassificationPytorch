@@ -12,6 +12,7 @@ import torch.nn as nn
 import random
 import os
 import itertools
+import gc
 
 # Initialize logger for this module.
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
@@ -49,6 +50,9 @@ class ModelEvaluator:
         """
         if self.tensorBoardWriter:
             self.tensorBoardWriter.close_writer()
+        del self.model
+        torch.cuda.empty_cache()
+        gc.collect()
 
     @classmethod
     def from_trainer(cls, model_trainer):
