@@ -6,6 +6,7 @@ pathutils.setup_sys_path()
 import utils.dataset.datasetutils as datasetutils
 import torch
 from src.utils.logging.loggerfactory import LoggerFactory
+from src.config import config
 
 # Set up logging for the training process
 logger = LoggerFactory.setup_logging("logger", log_file=pathutils.combine_path(
@@ -49,7 +50,7 @@ def compute_mean_std(dataloader):
     return mean, std
 if __name__ == '__main__':
     # DataLoader for your dataset
-    dataloader = datasetutils.get_data_loader_by_name('train', shuffle=True)
+    dataloader = datasetutils.get_data_loader_by_name('train', config, shuffle=True)
 
     try:
         # Calculate mean and std

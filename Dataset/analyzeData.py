@@ -26,7 +26,7 @@ def analyze_csv(csv_file_path):
     return annotation_counts, file_counts
 
 # Replace 'your_file.csv' with the actual path to your CSV file
-csv_file_path = 'dataset.csv'
+csv_file_path = 'Dataset/dataset.csv'
 annotation_counts, file_counts = analyze_csv(csv_file_path)
 
 # Print results
