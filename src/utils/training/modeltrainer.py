@@ -81,6 +81,7 @@ class ModelTrainer():
             self.start_epoch = 0
             self.best_model_state = None
         self.current_epoch = self.start_epoch - 1
+        self.best_f1_score_at_last_reset = 0
         self.patience_counter = 0
         self.patience = self.config.early_stopping_patience
     
