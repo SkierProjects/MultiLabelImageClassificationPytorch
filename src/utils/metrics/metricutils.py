@@ -188,3 +188,21 @@ def find_best_thresholds_per_class(prediction_outputs, true_labels, metric='f1',
 
         best_thresholds[class_idx] = best_threshold_for_class
     return best_thresholds
+
+def filter_dict_for_hparams(input_dict):
+    """
+    Filters out types that arent allowed in hparams for tensorboard
+    """
+    # Define the allowed types
+    allowed_types = (int, float, str, bool, torch.Tensor)
+    
+    # Create a new dictionary to store the filtered key-value pairs
+    filtered_dict = {}
+    
+    # Iterate over the items in the original dictionary
+    for key, value in input_dict.items():
+        # If the value is of an allowed type, add it to the new dictionary
+        if isinstance(value, allowed_types):
+            filtered_dict[key] = value
+
+    return filtered_dict

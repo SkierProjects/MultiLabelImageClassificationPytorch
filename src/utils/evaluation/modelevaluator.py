@@ -17,7 +17,7 @@ import itertools
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 class ModelEvaluator:
-    def __init__(self, model, criterion, device, tensorBoardWriter=None, config=config, epochs=None):
+    def __init__(self, model, criterion, device, tensorBoardWriter=None, config=config, model_data=None):
         """
         Initializes the ModelEvaluator with a given model, loss criterion, device,
         optional TensorBoard writer, and configuration.
@@ -35,7 +35,7 @@ class ModelEvaluator:
         self.device = device
         self.num_classes = config.num_classes
         self.tensorBoardWriter = tensorBoardWriter
-        self.epochs = epochs
+        self.model_data = model_data
 
     def __enter__(self):
         """
@@ -67,11 +67,12 @@ class ModelEvaluator:
             criterion=model_trainer.criterion,
             device=model_trainer.device,
             config=model_trainer.config,
-            tensorBoardWriter=model_trainer.tensorBoardWriter
+            tensorBoardWriter=model_trainer.tensorBoardWriter,
+            model_data=model_trainer.best_model_state
         )
     
     @classmethod
-    def from_file(cls, device, tensorBoardWriter=None, thisconfig=config):
+    def from_file(cls, device, thisconfig, tensorBoardWriter=None):
         """
         Creates a ModelEvaluator instance from a model file by loading in the model and preparing it
           to be run.
@@ -82,7 +83,6 @@ class ModelEvaluator:
             config (object): An immutable configuration object with necessary parameters.
         """
         
-        thisconfig = config
         model = modelfactory.create_model(
             thisconfig.model_name,
             requires_grad=thisconfig.model_requires_grad,
@@ -92,10 +92,10 @@ class ModelEvaluator:
         criterion = nn.BCEWithLogitsLoss()
 
         modelToLoadPath = pathutils.get_model_to_load_path(thisconfig)
-        epochs = 0
         if os.path.exists(modelToLoadPath):
             logger.info("Loading the best model...")    
-            _, epochs = modelloadingutils.load_model(modelToLoadPath, model)
+            modelData = modelloadingutils.load_model(modelToLoadPath, thisconfig)
+            model.load_state_dict(modelData['model_state_dict'])
         else:
             logger.error(f"Could not find a model at path: {modelToLoadPath}")
             raise ValueError(f"Could not find a model at path: {modelToLoadPath}. Check to ensure the config/json value for model_name_to_load is correct!")
@@ -106,7 +106,7 @@ class ModelEvaluator:
             device=device,
             config=thisconfig,
             tensorBoardWriter=tensorBoardWriter,
-            epochs= epochs
+            model_data=modelData
         )
     
     def single_image_prediction(self, preprocessed_image, threshold=None):
@@ -189,7 +189,7 @@ class ModelEvaluator:
 
         return results
 
-    def evaluate_predictions(self, data_loader, prediction_outputs, true_labels, epoch, datasetSubset, average, metricMode=None, threshold=None):
+    def evaluate_predictions(self, data_loader, prediction_outputs, true_labels, epoch, average, datasetSubset=None, metricMode=None, threshold=None):
         """
         Evaluate the model on the given data_loader.
 
@@ -213,7 +213,7 @@ class ModelEvaluator:
         # Compute evaluation metrics
         precision, recall, f1 = metricutils.compute_metrics(true_labels, predictions_binary, average=average)
         # Log images with predictions to TensorBoard for a random batch, if configured
-        if metricMode is not None and self.tensorBoardWriter is not None:
+        if metricMode is not None and self.tensorBoardWriter is not None and datasetSubset is not None:
             random_batch_index = random.randint(0, len(data_loader) - 1)
             batch_dict = next(itertools.islice(data_loader, random_batch_index, None))
             images = batch_dict['image']  # Assuming the device transfer happens elsewhere if needed
@@ -251,7 +251,7 @@ class ModelEvaluator:
         prediction_results = self.predict(data_loader)
         all_outputs, all_labels, avg_loss = prediction_results['predictions'], prediction_results['true_labels'], prediction_results['avg_loss']
 
-        f1, precision, recall = self.evaluate_predictions(data_loader, all_outputs, all_labels, epoch, datasetSubset, average, metricMode,threshold)
+        f1, precision, recall = self.evaluate_predictions(data_loader, all_outputs, all_labels, epoch, average, datasetSubset, metricMode, threshold)
 
         # Return the average loss and computed metrics
         return avg_loss, f1, precision, recall

@@ -103,7 +103,7 @@ def get_dataset_path(config):
     """
     return Path(get_root_path(), "Dataset", config.dataset_file_name)
 
-def get_many_models_json():
+def get_train_many_models_json():
     """
     Gets the path for the JSON file containing configurations for training many models.
 
@@ -111,3 +111,12 @@ def get_many_models_json():
         Path: The path to the 'train_many_models.json' file.
     """
     return Path(get_root_path(), "src", "train_many_models.json")
+
+def get_test_many_models_json():
+    """
+    Gets the path for the JSON file containing configurations for training many models.
+
+    Returns:
+        Path: The path to the 'train_many_models.json' file.
+    """
+    return Path(get_root_path(), "src", "test_many_models.json")

@@ -1,16 +1,17 @@
+
 class config:
     """
     Configuration class for holding model and training parameters.
     """
 
     # Default static property values
-    model_name = 'resnext50_32x4d'
+    model_name = 'wide_resnet50_2'
     model_requires_grad = True
     num_classes = 31
     model_dropout_prob = 0.0
     model_weights = 'DEFAULT'
-    image_size = 384
-    batch_size = 48
+    image_size = 400
+    batch_size = 52
     learning_rate = 1e-4
     num_epochs = 150
     continue_training = False

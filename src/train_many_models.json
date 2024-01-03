@@ -1,12 +1,31 @@
 [
-    {
-        "MODEL_NAME": "efficientnet_v2_m",
+	{
+        "MODEL_NAME": "regnet_y_32gf",
         "MODEL_IMAGESIZE": 400,
-        "NUM_EPOCHS": 2
+		"learningrate_reducer_patience": 6,
+		"early_stopping_patience": 18,
+		"batch_size": 20,
+		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
     },
-    {
-        "MODEL_NAME": "resnet50",
+	{
+        "MODEL_NAME": "swin_v2_b",
         "MODEL_IMAGESIZE": 400,
-        "LEARNING_RATE": 3
+		"learningrate_reducer_patience": 6,
+		"early_stopping_patience": 18,
+		"batch_size": 18
+    },
+	{
+        "MODEL_NAME": "resnext101_64x4d",
+        "MODEL_IMAGESIZE": 400,
+		"learningrate_reducer_patience": 6,
+		"early_stopping_patience": 18,
+		"batch_size": 24
+    },
+	{
+        "MODEL_NAME": "wide_resnet50_2",
+        "MODEL_IMAGESIZE": 400,
+		"learningrate_reducer_patience": 6,
+		"early_stopping_patience": 18,
+		"batch_size": 52
     }
 ]

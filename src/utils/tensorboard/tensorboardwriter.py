@@ -30,6 +30,17 @@ class TensorBoardWriter():
         """
         self.writer.add_scalar(tag, scalar_value, step)
 
+    def add_scalars_from_dict(self, input_dict, step):
+        """
+        Writes a scalar value to TensorBoard.
+
+        Parameters:
+            input_dict (dict): Dictionary of tag name to tag values
+            step (int): The global step value to record.
+        """
+        for key, value in input_dict.items():
+            self.add_scalar(key, value, step)
+
     def write_image_test_results(self, images, true_labels, predictions, step, runmode, dataSubset):
         """
         Writes image test results with overlays to TensorBoard.

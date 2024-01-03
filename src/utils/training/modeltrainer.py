@@ -7,6 +7,7 @@ import utils.files.pathutils as pathutils
 from src.utils.logging.loggerfactory import LoggerFactory
 from src.config import config
 import src.utils.models.modelutils as modelutils
+from utils.metrics import metricutils
 from utils.tensorboard.tensorboardwriter import TensorBoardWriter
 import utils.files.modelloadingutils as modelloadingutils
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
@@ -49,16 +50,21 @@ class ModelTrainer():
         modelToLoadPath = pathutils.get_model_to_load_path(self.config)
         if self.config.continue_training and os.path.exists(modelToLoadPath):
             logger.info("Loading the best model...")    
-            self.best_f1_score, epochs = modelloadingutils.load_model(modelToLoadPath, self.model,self.optimizer)
-            self.start_epoch = epochs + 1
+            modelData = modelloadingutils.load_model(modelToLoadPath, self.config)
+            self.model.load_state_dict(modelData['model_state_dict'])
+            self.optimizer.load_state_dict(modelData['optimizer_state_dict'])
+
+            self.best_f1_score = modelData["f1_score"]
+            self.start_epoch = modelData["epoch"] + 1
             self.epochs = self.epochs + self.start_epoch
             self.best_model_state = {
-                'epoch': epochs,
+                'epoch': modelData["epoch"],
                 'model_state_dict': self.model.state_dict(),
                 'optimizer_state_dict': self.optimizer.state_dict(),
                 'loss': self.criterion,
                 'f1_score': self.best_f1_score,
                 'model_name': self.config.model_name,
+                'image_size': self.config.image_size,
                 'requires_grad': self.config.model_requires_grad,
                 'num_classes': self.config.num_classes,
                 'dropout': self.config.model_dropout_prob,
@@ -168,18 +174,7 @@ class ModelTrainer():
             test_loss (float): The loss on the test dataset.
             test_f1 (float): The F1 score on the test dataset.
         """
-        hparams = {
-            'model_name': self.config.model_name,
-            'requires_grad': self.config.model_requires_grad,
-            'num_classes': self.config.num_classes,
-            'dropout': self.config.model_dropout_prob,
-            'embedding_layer': self.config.embedding_layer_enabled,
-            'gcn_enabled': self.config.gcn_enabled,
-            'lr': self.config.learning_rate,
-            'batch_size': self.config.batch_size,
-            'optimizer': 'Adam',
-            'loss_function': 'BCEWithLogitsLoss'
-        }
+        hparams = metricutils.filter_dict_for_hparams(self.best_model_state)
         metrics = {
             'best_val_f1_score': self.best_f1_score,
             'final_train_loss': self.last_train_loss if self.last_train_loss else 0,

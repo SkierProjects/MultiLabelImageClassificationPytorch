@@ -1,0 +1,50 @@
+[
+    {
+        "model_name_to_load": "resnext50_32x4d_384_0.6813"
+		
+    },
+    {
+        "model_name_to_load": "vit_b_16_384_0.6173",
+		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
+    },
+    {
+        "model_name_to_load": "efficientnet_v2_m_400_0.5936"
+    },
+    {
+        "model_name_to_load": "efficientnet_v2_m_400_0.7178"
+    },
+    {
+        "model_name_to_load": "regnet_y_32gf_400_0.4497",
+		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
+    },
+    {
+        "model_name_to_load": "regnet_y_32gf_400_0.7431",
+		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
+    },
+    {
+        "model_name_to_load": "regnet_y_32gf_400_0.5130",
+		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
+    },
+    {
+        "model_name_to_load": "convnext_large_400_0.4880"
+    },
+    {
+        "model_name_to_load": "resnext50_32x4d_400_0.4400"
+    },
+    {
+        "model_name_to_load": "wide_resnet50_2_400_0.4293"
+    },
+    {
+        "model_name_to_load": "regnet_y_32gf_384_0.4921",
+		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
+    },
+    {
+        "model_name_to_load": "resnext101_64x4d_400_0.4806"
+    },
+    {
+        "model_name_to_load": "swin_v2_b_400_0.4607"
+    },
+    {
+        "model_name_to_load": "efficientnet_v2_m_400_0.4822"
+    }
+]

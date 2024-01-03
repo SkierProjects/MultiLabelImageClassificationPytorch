@@ -6,6 +6,7 @@ import torch
 import utils.dataset.datasetutils as datasetutils
 from src.utils.training.modeltrainer import ModelTrainer
 from src.utils.evaluation.modelevaluator import ModelEvaluator
+from src.utils.evaluation.test_model import evaluate_model
 
 def train_model(config=config):
     """
@@ -54,9 +55,10 @@ def train_model(config=config):
             if modelTrainer.best_model_state:
                 modelTrainer.save_final_model()
 
-                logger.info("Evaluating Test Results")
-                test_loss, test_f1, precision, recall = modelEvaluator.evaluate(test_loader, epoch, "Test", "Train")
-                logger.info(f'Test Loss: {test_loss:.4f}')
-                logger.info(f'Test Precision: {precision:.4f}, Recall:{recall:.4f}')
-                logger.info(f'Test F1 Score: {test_f1:.4f}')
-                modelTrainer.log_hparam_results(test_loss, test_f1)
+                #logger.info("Evaluating Test Results")
+                #test_loss, test_f1, precision, recall = modelEvaluator.evaluate(test_loader, epoch, "Test", "Train")
+                #logger.info(f'Test Loss: {test_loss:.4f}')
+                #logger.info(f'Test Precision: {precision:.4f}, Recall:{recall:.4f}')
+                #logger.info(f'Test F1 Score: {test_f1:.4f}')
+                evaluate_model(config)
+                #modelTrainer.log_hparam_results(test_loss, test_f1)

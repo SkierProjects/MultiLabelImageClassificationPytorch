@@ -1,7 +1,8 @@
 import torch
-from src.utils.logging.loggerfactory import LoggerFactory
+from utils.logging.loggerfactory import LoggerFactory
 import utils.files.pathutils as pathutils
 import os
+import re
 
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
@@ -32,24 +33,55 @@ def save_final_model(model_state, f1_score, config):
     torch.save(model_state, final_model_path)
     logger.info(f"Final model saved as {final_model_path}")
 
-def load_model(model_path, model, optimizer=None):
+def load_model(model_path, config):
     """
     Loads a model and its optimizer state from a checkpoint file.
 
     Parameters:
         model_path (str): Path to the checkpoint file.
-        model (torch.nn.Module): The model instance to load the state into.
-        optimizer (torch.optim.Optimizer, optional): The optimizer instance to load the state into, if provided.
+        config (object): Configuration object.
 
     Returns:
-        best_f1_score (float): The best F1 score recorded in the checkpoint.
-        epochs (int): The number of epochs the model was trained for.
+        model_data (dict): The model data from the file.
     """
     checkpoint = torch.load(model_path)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    if optimizer is not None:
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    best_f1_score = checkpoint.get('f1_score', -1)  # Default to -1 if not present
-    epochs = checkpoint.get('epoch', 0)  # Default to 0 if not present
+    model_data = {}
+    model_data["f1_score"] = checkpoint.get('f1_score', -1)
+    model_data["epoch"] = checkpoint.get('epoch', 0)
+    model_data["loss"] = checkpoint.get('loss', -1)
+    model_data["model_name"] = checkpoint.get('model_name', config.model_name)
+    model_data["image_size"] = checkpoint.get('image_size', config.image_size)
+    model_data["requires_grad"] = checkpoint.get('requires_grad', True)
+    model_data["num_classes"] = checkpoint.get('num_classes', config.num_classes)
+    model_data["dropout"] = checkpoint.get('dropout', 0)
+    model_data["embedding_layer"] = checkpoint.get('embedding_layer', config.embedding_layer_enabled)
+    model_data["gcn_enabled"] = checkpoint.get('gcn_enabled', config.gcn_enabled)
+    model_data["batch_size"] = checkpoint.get('batch_size', config.batch_size)
+    model_data["optimizer"] = checkpoint.get('optimizer', 'Adam')
+    model_data["loss_function"] = checkpoint.get('loss_function', 'BCEWithLogitsLoss')
+    model_data["model_state_dict"] = checkpoint.get('model_state_dict', -1)
+    model_data["optimizer_state_dict"] = checkpoint.get('optimizer_state_dict', -1)
     
-    return best_f1_score, epochs
+    return model_data
+
+def update_config_from_model_file(config):
+    pattern = r"(.+?)_(\d{3})_\d\.\d{4}"
+    file_name = config.model_name_to_load
+    match = re.match(pattern, file_name)
+    if match:
+        # If there's a match, get the model name and image size
+        model_name = match.group(1)  # The first capture group (modelname)
+        image_size = match.group(2)  # The second capture group (image size)
+        config.model_name = model_name
+        config.image_size = int(image_size)
+        return
+    else:
+        model_file_path = pathutils.get_model_to_load_path(config)
+        checkpoint = torch.load(model_file_path)
+        model_name = checkpoint.get('model_name', None)
+        image_size = checkpoint.get('image_size', None)
+        if model_name is not None:
+            config.model_name = model_name
+        if image_size is not None:
+            config.image_size = image_size
+        return

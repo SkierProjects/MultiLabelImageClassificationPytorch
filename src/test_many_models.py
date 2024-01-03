@@ -4,8 +4,9 @@ import utils.files.pathutils as pathutils
 # Set up system path for relative imports
 pathutils.setup_sys_path()
 
-from utils.training.train_model import train_model
+from utils.evaluation.test_model import evaluate_model
 from utils.files import jsonutils
+from utils.files.modelloadingutils import update_config_from_model_file
 from src.utils.logging.loggerfactory import LoggerFactory
 
 # Set up logging for the training process
@@ -24,10 +25,14 @@ def main(json_file_path):
     """
     configs = jsonutils.load_configs_from_json(json_file_path)
     for config_instance in configs:
-        logger.info(f"Starting training for model: {config_instance.model_name}, image size: {config_instance.image_size}, dropout: {config_instance.model_dropout_prob}, weights: {config_instance.model_weights}")
-        train_model(config_instance)
+        update_config_from_model_file(config_instance)
+        logger.info(f"Starting Evaluating for model: {config_instance.model_name}, image size: {config_instance.image_size}, weights: {config_instance.model_weights}")
+        try:
+            evaluate_model(config_instance)
+        except Exception:
+            logger.error("Failed testing for model: {config_instance.model_name}, image size: {config_instance.image_size}, weights: {config_instance.model_weights}")
 
 if __name__ == '__main__':
     # Get the path to the JSON file containing the model configurations
-    json_file_path = pathutils.get_train_many_models_json()
+    json_file_path = pathutils.get_test_many_models_json()
     main(json_file_path)
