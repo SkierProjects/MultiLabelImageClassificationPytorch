@@ -1,75 +1,67 @@
 [
 	{
-        "MODEL_NAME": "regnet_y_32gf",
-        "MODEL_IMAGESIZE": 400,
-		"learningrate_reducer_patience": 6,
-		"early_stopping_patience": 18,
-		"batch_size": 18,
-		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
-    },
-	{
         "MODEL_NAME": "swin_v2_b",
-        "MODEL_IMAGESIZE": 400,
-		"learningrate_reducer_patience": 6,
-		"early_stopping_patience": 18,
+        "image_size": 400,
+		"learningrate_reducer_patience": 4,
+		"early_stopping_patience": 8,
 		"batch_size": 18
     },
 	{
         "MODEL_NAME": "resnext101_64x4d",
-        "MODEL_IMAGESIZE": 400,
-		"learningrate_reducer_patience": 6,
-		"early_stopping_patience": 18,
+        "image_size": 400,
+		"learningrate_reducer_patience": 4,
+		"early_stopping_patience": 8,
 		"batch_size": 24
     },
 	{
         "MODEL_NAME": "wide_resnet50_2",
-        "MODEL_IMAGESIZE": 400,
-		"learningrate_reducer_patience": 6,
-		"early_stopping_patience": 18,
+        "image_size": 400,
+		"learningrate_reducer_patience": 4,
+		"early_stopping_patience": 8,
 		"batch_size": 52
     },
 	{
         "MODEL_NAME": "convnext_large",
-        "MODEL_IMAGESIZE": 400,
-		"learningrate_reducer_patience": 6,
-		"early_stopping_patience": 18,
+        "image_size": 400,
+		"learningrate_reducer_patience": 4,
+		"early_stopping_patience": 8,
 		"batch_size": 16
     },
     {
         "MODEL_NAME": "efficientnet_v2_m",
-        "MODEL_IMAGESIZE": 400,
-		"learningrate_reducer_patience": 6,
-		"early_stopping_patience": 18,
+        "image_size": 400,
+		"learningrate_reducer_patience": 4,
+		"early_stopping_patience": 8,
 		"batch_size": 24
     },
 	{
         "MODEL_NAME": "vit_l_16",
-        "MODEL_IMAGESIZE": 512,
-		"learningrate_reducer_patience": 6,
-		"early_stopping_patience": 18,
+        "image_size": 512,
+		"learningrate_reducer_patience": 4,
+		"early_stopping_patience": 8,
 		"batch_size": 10,
 		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
     },
 	{
         "MODEL_NAME": "vit_b_16",
-        "MODEL_IMAGESIZE": 384,
-		"learningrate_reducer_patience": 6,
-		"early_stopping_patience": 18,
+        "image_size": 384,
+		"learningrate_reducer_patience": 4,
+		"early_stopping_patience": 8,
 		"batch_size": 48,
 		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
     },
 	{
         "MODEL_NAME": "maxvit_t",
-        "MODEL_IMAGESIZE": 224,
-		"learningrate_reducer_patience": 6,
-		"early_stopping_patience": 18,
+        "image_size": 224,
+		"learningrate_reducer_patience": 4,
+		"early_stopping_patience": 8,
 		"batch_size": 56
     },
 	{
         "MODEL_NAME": "regnet_y_16gf",
-        "MODEL_IMAGESIZE": 384,
-		"learningrate_reducer_patience": 6,
-		"early_stopping_patience": 18,
+        "image_size": 384,
+		"learningrate_reducer_patience": 4,
+		"early_stopping_patience": 8,
 		"batch_size": 68,
 		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
     }

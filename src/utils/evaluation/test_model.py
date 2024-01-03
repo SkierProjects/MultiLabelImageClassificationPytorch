@@ -20,19 +20,23 @@ def evaluate_model(this_config=config):
     # intialize the model
     with ModelEvaluator.from_file(device, this_config, TensorBoardWriter(config=this_config)) as modelEvaluator:
         epochs = modelEvaluator.model_data["epoch"]
-        valid_results = modelEvaluator.predict(valid_loader)
-        test_results = modelEvaluator.predict(test_loader)
-        validtest_results = modelEvaluator.predict(valid_test_loader)
 
         valid_start_time = time.time()
-        valid_predictions, valid_correct_labels, valid_loss = valid_results['predictions'], valid_results['true_labels'], valid_results['avg_loss']
+        valid_results = modelEvaluator.predict(valid_loader)
         valid_end_time = time.time()
+
         test_start_time = time.time()
-        test_predictions, test_correct_labels, test_loss = test_results['predictions'], test_results['true_labels'], test_results['avg_loss']
+        test_results = modelEvaluator.predict(test_loader)
         test_end_time = time.time()
-        valid_test_start_time = time.time()
-        validtest_predictions, validtest_correct_labels, validtest_loss = validtest_results['predictions'], validtest_results['true_labels'], validtest_results['avg_loss']
+
+        valid_test_start_time = time.time()       
+        validtest_results = modelEvaluator.predict(valid_test_loader)
         valid_test_end_time = time.time()
+
+
+        valid_predictions, valid_correct_labels, valid_loss = valid_results['predictions'], valid_results['true_labels'], valid_results['avg_loss']
+        test_predictions, test_correct_labels, test_loss = test_results['predictions'], test_results['true_labels'], test_results['avg_loss']
+        validtest_predictions, validtest_correct_labels, validtest_loss = validtest_results['predictions'], validtest_results['true_labels'], validtest_results['avg_loss']
 
         valid_elapsed_time = valid_end_time - valid_start_time
         test_elapsed_time = test_end_time - test_start_time
@@ -47,6 +51,11 @@ def evaluate_model(this_config=config):
         valid_test_images_per_second = valid_test_num_images / valid_test_elapsed_time
 
         avg_images_per_second = (valid_images_per_second + test_images_per_second + valid_test_images_per_second) / 3
+
+        logger.info(f"Validation Img/sec: {valid_images_per_second}")
+        logger.info(f"Test Img/sec: {test_images_per_second}")
+        logger.info(f"Validation+Test Img/sec: {valid_test_images_per_second}")
+        logger.info(f"Avg Img/sec: {avg_images_per_second}")
 
         logger.info(f"Validation Loss: {valid_loss}")
         logger.info(f"Test Loss: {test_loss}")

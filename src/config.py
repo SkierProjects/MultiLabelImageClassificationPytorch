@@ -5,18 +5,19 @@ class config:
     """
 
     # Default static property values
-    model_name = 'regnet_y_16gf'
+    model_name = 'regnet_y_32gf'
     model_requires_grad = True
     num_classes = 31
     model_dropout_prob = 0.0
-    model_weights = 'IMAGENET1K_SWAG_E2E_V1'
-    image_size = 224
-    batch_size = 68
+    model_weights = 'DEFAULT'
+    image_size = 400
+    batch_size = 18
     learning_rate = 1e-4
     num_epochs = 150
     continue_training = False
     model_name_to_load = "best_model"
     early_stopping_patience = 8
+    early_stopping_threshold = 1e-2
     learningrate_reducer_patience = 3
     learningrate_reducer_threshold = 1e-2
     learningrate_reducer_factor = 0.1

@@ -204,11 +204,14 @@ class ModelTrainer():
     def check_early_stopping(self):
         """
         Check if early stopping criteria are met based on the validation F1 score.
-        If the score has not improved for a set number of epochs, trigger early stopping.
+        If the score has not improved by a certain proportion over the patience window,
+        trigger early stopping.
 
         Returns:
             bool: True if early stopping is triggered, False otherwise.
         """
+        improvement_threshold = self.config.early_stopping_threshold
+        significant_improvement = False
         if self.last_valid_f1 > self.best_f1_score:
             logger.info(f"Validation F1 Score improved from {self.best_f1_score:.4f} to {self.last_valid_f1:.4f}")
             self.best_f1_score = self.last_valid_f1
@@ -231,12 +234,23 @@ class ModelTrainer():
 
             modelloadingutils.save_best_model(self.best_model_state)
             self.patience_counter = 0
-        else:
+
+            # Check for significant improvement since the last reset of the patience counter
+        if self.last_valid_f1 - self.best_f1_score_at_last_reset >= improvement_threshold:
+            logger.info(f"Significant cumulative improvement of {self.last_valid_f1 - self.best_f1_score_at_last_reset:.4f} has been achieved since the last reset.")
+            significant_improvement = True
+            self.best_f1_score_at_last_reset = self.last_valid_f1
+            self.patience_counter = 0
+        
+            # Increment patience counter if no significant improvement
+        if not significant_improvement:
             self.patience_counter += 1
-            if self.patience_counter >= self.patience:
-                logger.info(f"Early stopping triggered after {self.patience} epochs without improvement.")
-                return True
-        return False
+
+        # If there hasn't been significant improvement over the patience window, trigger early stopping
+        if self.patience_counter >= self.patience:
+            logger.info(f"Early stopping triggered after {self.patience} epochs without significant cumulative improvement.")
+            return True
+
     
     def save_final_model(self):
         """
