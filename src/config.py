@@ -13,16 +13,18 @@ class config:
     image_size = 400
     batch_size = 18
     learning_rate = 1e-4
-    num_epochs = 150
+    num_epochs = 50
     continue_training = False
     model_name_to_load = "best_model"
     early_stopping_patience = 8
-    early_stopping_threshold = 1e-2
+    early_stopping_threshold = 8e-3
     learningrate_reducer_patience = 3
     learningrate_reducer_threshold = 1e-2
-    learningrate_reducer_factor = 0.1
+    learningrate_reducer_factor = 0.15
+    learningrate_reducer_min_lr = 1e-7
 
     embedding_layer_enabled = False
+    embedding_layer_dimension = 62
     gcn_enabled = False
 
     log_level = "DEBUG"

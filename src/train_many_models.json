@@ -1,19 +1,5 @@
 [
 	{
-        "MODEL_NAME": "swin_v2_b",
-        "image_size": 400,
-		"learningrate_reducer_patience": 4,
-		"early_stopping_patience": 8,
-		"batch_size": 18
-    },
-	{
-        "MODEL_NAME": "resnext101_64x4d",
-        "image_size": 400,
-		"learningrate_reducer_patience": 4,
-		"early_stopping_patience": 8,
-		"batch_size": 24
-    },
-	{
         "MODEL_NAME": "wide_resnet50_2",
         "image_size": 400,
 		"learningrate_reducer_patience": 4,

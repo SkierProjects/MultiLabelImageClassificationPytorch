@@ -36,12 +36,14 @@ class ModelTrainer():
             self.config.model_name,
             requires_grad=self.config.model_requires_grad,
             num_classes=self.config.num_classes,
-            weights=self.config.model_weights
+            weights=self.config.model_weights,
+            add_embedding_layer=self.config.embedding_layer_enabled,
+            embedding_dim=self.config.embedding_layer_dimension
         ).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.learning_rate)
         self.criterion = nn.BCEWithLogitsLoss()
         self.epochs = self.config.num_epochs
-        self.lr_scheduler = modelutils.get_learningRate_scheduler(self.optimizer)
+        self.lr_scheduler = modelutils.get_learningRate_scheduler(self.optimizer, config)
         self.last_train_loss = 10000
         self.last_valid_loss = 10000
         self.last_valid_f1 = 0
@@ -234,7 +236,6 @@ class ModelTrainer():
             }
 
             modelloadingutils.save_best_model(self.best_model_state)
-            self.patience_counter = 0
 
             # Check for significant improvement since the last reset of the patience counter
         if self.last_valid_f1 - self.best_f1_score_at_last_reset >= improvement_threshold:

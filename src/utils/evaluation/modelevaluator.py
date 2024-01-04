@@ -91,7 +91,9 @@ class ModelEvaluator:
             thisconfig.model_name,
             requires_grad=thisconfig.model_requires_grad,
             num_classes=thisconfig.num_classes,
-            weights=thisconfig.model_weights
+            weights=thisconfig.model_weights,
+            add_embedding_layer=thisconfig.embedding_layer_enabled,
+            embedding_dim=thisconfig.embedding_layer_dimension
         ).to(device)
         criterion = nn.BCEWithLogitsLoss()
 
