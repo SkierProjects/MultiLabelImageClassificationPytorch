@@ -86,13 +86,18 @@ class ImageDataset(Dataset):
             raise ValueError("Mode must be 'train', 'valid', 'test', or 'valid+test'.")
 
     def train_transforms(self):
+    
         return transforms.Compose([
             transforms.ToPILImage(),
             transforms.RandomResizedCrop((self.image_size, self.image_size)),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
             transforms.RandomRotation(degrees=45),
+            transforms.RandomAffine(degrees=10, translate=(0.05, 0.05), scale=(0.95, 1.05)),
+            transforms.RandomPerspective(distortion_scale=0.2, p=0.2),
+            transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 2)),
             transforms.ToTensor(),
+            transforms.RandomErasing(p=0.3, scale=(0.02, 0.1), ratio=(0.3, 3.3), value=0, inplace=False),  # Moved after ToTensor
             transforms.Normalize(mean=self.config.dataset_normalization_mean, std=self.config.dataset_normalization_std),
         ])
 

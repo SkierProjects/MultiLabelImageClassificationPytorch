@@ -24,11 +24,17 @@ def save_final_model(model_state, f1_score, config):
         f1_score (float): The F1 score of the model.
         config (object): Configuration object containing model_name and image_size.
     """
-    final_model_path_template = os.path.join(str(pathutils.get_output_dir_path()), '{model_name}_{image_size}_{f1_score:.4f}.pth')
+    modelAddons = ""
+    if config.embedding_layer_enabled:
+        modelAddons = "_EmbeddingLayer"
+    elif config.gcn_enabled:
+        modelAddons = "_GCN"
+    final_model_path_template = os.path.join(str(pathutils.get_output_dir_path()), '{model_name}_{image_size}_{f1_score:.4f}{modelAddons}.pth')
     final_model_path = final_model_path_template.format(
         model_name=config.model_name,
         image_size=config.image_size,
-        f1_score=f1_score
+        f1_score=f1_score,
+        modelAddons=modelAddons
     )
     torch.save(model_state, final_model_path)
     logger.info(f"Final model saved as {final_model_path}")
@@ -45,6 +51,11 @@ def load_model(model_path, config):
         model_data (dict): The model data from the file.
     """
     checkpoint = torch.load(model_path)
+    
+    model_data = add_model_data(checkpoint, config)
+    return model_data
+
+def add_model_data(checkpoint, config):
     model_data = {}
     model_data["f1_score"] = checkpoint.get('f1_score', -1)
     model_data["epoch"] = checkpoint.get('epoch', 0)
@@ -61,7 +72,6 @@ def load_model(model_path, config):
     model_data["loss_function"] = checkpoint.get('loss_function', 'BCEWithLogitsLoss')
     model_data["model_state_dict"] = checkpoint.get('model_state_dict', -1)
     model_data["optimizer_state_dict"] = checkpoint.get('optimizer_state_dict', -1)
-    
     return model_data
 
 def update_config_from_model_file(config):
@@ -85,3 +95,25 @@ def update_config_from_model_file(config):
         if image_size is not None:
             config.image_size = image_size
         return
+    
+def load_pretrained_weights_exclude_classifier(new_model, config, freeze_base_model=False):
+    pretrained_model_path = pathutils.combine_path(pathutils.get_output_dir_path(), f"{config.model_to_load_raw_weights}.pth")
+    path = str(pretrained_model_path)
+    # Load the state dictionary of the pretrained model
+    pretrained_state_dict = torch.load(path)
+    model_data = add_model_data(pretrained_state_dict, config)
+    # Remove the weights for the final classifier layer from the pretrained state_dict
+    classifier_keys = [key for key in pretrained_state_dict if key.startswith('classifier.') or key.startswith('fc.') or key.startswith('head.') or key.startswith('heads.') ]
+    for key in classifier_keys:
+        pretrained_state_dict.pop(key)
+
+    # Load the remaining weights into the new model's base model
+    # This will exclude the final classifier layer
+    new_model.base_model.load_state_dict(pretrained_state_dict, strict=False)
+
+    # Freeze the parameters of the base model, if required
+    if freeze_base_model:
+        for param in new_model.base_model.parameters():
+            param.requires_grad = False
+
+    return new_model, model_data

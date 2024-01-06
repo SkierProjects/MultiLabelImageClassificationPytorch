@@ -13,9 +13,15 @@ class TensorBoardWriter():
     """
     def __init__(self, config=config):
         self.config = config
+
+        modelAddons = ""
+        if self.config.embedding_layer_enabled:
+            modelAddons = "_EmbeddingLayer"
+        elif self.config.gcn_enabled:
+            modelAddons = "_GCN"
         log_dir = pathutils.combine_path(
             pathutils.get_tensorboard_log_dir_path(),
-            f'{config.model_name}_{config.model_weights}_{config.image_size}'
+            f'{config.model_name}_{config.model_weights}_{config.image_size}{modelAddons}'
         )
         self.writer = SummaryWriter(log_dir)
 

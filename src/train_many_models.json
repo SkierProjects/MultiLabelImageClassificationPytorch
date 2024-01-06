@@ -1,54 +1,13 @@
 [
 	{
-        "MODEL_NAME": "wide_resnet50_2",
-        "image_size": 400,
-		"learningrate_reducer_patience": 4,
-		"early_stopping_patience": 8,
-		"batch_size": 52
-    },
-	{
-        "MODEL_NAME": "convnext_large",
-        "image_size": 400,
-		"learningrate_reducer_patience": 4,
-		"early_stopping_patience": 8,
-		"batch_size": 16
-    },
-    {
-        "MODEL_NAME": "efficientnet_v2_m",
-        "image_size": 400,
-		"learningrate_reducer_patience": 4,
-		"early_stopping_patience": 8,
-		"batch_size": 24
-    },
-	{
-        "MODEL_NAME": "vit_l_16",
-        "image_size": 512,
-		"learningrate_reducer_patience": 4,
-		"early_stopping_patience": 8,
-		"batch_size": 10,
-		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
-    },
-	{
-        "MODEL_NAME": "vit_b_16",
-        "image_size": 384,
-		"learningrate_reducer_patience": 4,
-		"early_stopping_patience": 8,
-		"batch_size": 48,
-		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
-    },
-	{
-        "MODEL_NAME": "maxvit_t",
-        "image_size": 224,
-		"learningrate_reducer_patience": 4,
-		"early_stopping_patience": 8,
-		"batch_size": 56
-    },
-	{
         "MODEL_NAME": "regnet_y_16gf",
         "image_size": 384,
 		"learningrate_reducer_patience": 4,
-		"early_stopping_patience": 8,
-		"batch_size": 68,
-		"model_weights": "IMAGENET1K_SWAG_E2E_V1"
+		"early_stopping_patience": 12,
+		"batch_size": 18,
+		"model_weights": "IMAGENET1K_SWAG_E2E_V1",
+		"embedding_layer_enabled": true,
+		"model_dropout_prob": 0,
+		"embedding_layer_dimension": 32
     }
 ]

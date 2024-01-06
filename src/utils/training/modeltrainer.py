@@ -12,6 +12,8 @@ import src.utils.models.modelutils as modelutils
 from utils.metrics import metricutils
 from utils.tensorboard.tensorboardwriter import TensorBoardWriter
 import utils.files.modelloadingutils as modelloadingutils
+import copy
+from collections import Counter
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 final_model_path_template = pathutils.combine_path(pathutils.get_output_dir_path(), '{model_name}_{image_size}_{f1_score:.4f}.pth')
 
@@ -41,7 +43,11 @@ class ModelTrainer():
             embedding_dim=self.config.embedding_layer_dimension
         ).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.learning_rate)
-        self.criterion = nn.BCEWithLogitsLoss()
+
+        # Compute label frequencies and create weights for the loss function
+        self.label_freqs = self.compute_label_frequencies(trainloader)
+        self.pos_weight = self.compute_loss_weights(self.label_freqs).to(device)
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
         self.epochs = self.config.num_epochs
         self.lr_scheduler = modelutils.get_learningRate_scheduler(self.optimizer, config)
         self.last_train_loss = 10000
@@ -54,9 +60,13 @@ class ModelTrainer():
         modelToLoadPath = pathutils.get_model_to_load_path(self.config)
         if self.config.continue_training and os.path.exists(modelToLoadPath):
             logger.info("Loading the best model...")    
-            modelData = modelloadingutils.load_model(modelToLoadPath, self.config)
-            self.model.load_state_dict(modelData['model_state_dict'])
-            self.optimizer.load_state_dict(modelData['optimizer_state_dict'])
+            if self.config.embedding_layer_enabled and self.config.model_to_load_raw_weights != "":
+                self.model, modelData = modelloadingutils.load_pretrained_weights_exclude_classifier(self.model, self.config, True)
+                modelData["f1_score"] = 0.0
+            else:
+                modelData = modelloadingutils.load_model(modelToLoadPath, self.config)
+                self.model.load_state_dict(modelData['model_state_dict'])
+                self.optimizer.load_state_dict(modelData['optimizer_state_dict'])
 
             self.best_f1_score = modelData["f1_score"]
             self.start_epoch = modelData["epoch"] + 1
@@ -125,7 +135,13 @@ class ModelTrainer():
         for data in tqdm(self.trainloader, total=len(self.trainloader)):
             images, targets = data['image'].to(self.device), data['label'].to(self.device).float()
             self.optimizer.zero_grad()
-            outputs = self.model(images)
+
+            logger.debug(outputs.shape)  # Should be [batch_size, num_classes]
+            logger.debug(targets.shape)  # Should be [batch_size, num_classes]
+            if (self.config.embedding_layer_enabled):
+                outputs = self.model(images, targets)
+            else:
+                outputs = self.model(images)
             loss = self.criterion(outputs, targets)
             train_running_loss += loss.item()
             loss.backward()
@@ -259,5 +275,49 @@ class ModelTrainer():
         Save the state of the model that achieved the best validation F1 score during training.
         The model state is saved to a file defined by the configuration.
         """
+        state_to_save = copy.deepcopy(self.best_model_state)
         modelloadingutils.save_final_model(self.best_model_state, self.best_f1_score, self.config)
-        self.model.load_state_dict(self.best_model_state['model_state_dict'])
+        self.model.load_state_dict(state_to_save['model_state_dict'])
+
+    def compute_label_frequencies(self):
+        """
+        Computes the frequency of each label in the dataset.
+        
+        Parameters:
+            dataloader (DataLoader): DataLoader for the dataset to compute frequencies.
+        
+        Returns:
+            label_freqs (torch.Tensor): Tensor containing the frequency of each label.
+        """
+        # Initialize the counter for all labels
+        counter = Counter()
+        
+        # Iterate over the dataset and update the counter
+        for batch in tqdm(self.trainloader, total=len(self.trainloader)):
+            # Assuming labels are in one-hot encoded format
+            labels = batch["label"].cpu().detach().numpy()
+            for label in labels:
+                counter.update(label)
+        
+        # Convert the counter to a tensor
+        label_freqs = torch.tensor([counter[i] for i in range(len(counter))], dtype=torch.float)
+        return label_freqs
+    
+    def compute_loss_weights(self, label_freqs):
+        """
+        Computes the weights for each label to be used in the loss function.
+        
+        Parameters:
+            label_freqs (torch.Tensor): Tensor containing the frequency of each label.
+        
+        Returns:
+            weights (torch.Tensor): Tensor containing the weight for each label.
+        """
+        # Compute the inverse frequency weights
+        total_counts = label_freqs.sum()
+        weights = total_counts / label_freqs
+        
+        # Normalize weights to prevent them from scaling the loss too much
+        weights = weights / weights.mean()
+        
+        return weights

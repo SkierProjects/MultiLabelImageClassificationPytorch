@@ -24,3 +24,4 @@ dependencies:
       - torch-summary
       - tensorboard
       - torch-tb-profiler
+      - torch-geometric
