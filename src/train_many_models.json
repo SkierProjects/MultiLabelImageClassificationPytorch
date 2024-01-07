@@ -2,12 +2,12 @@
 	{
         "MODEL_NAME": "regnet_y_16gf",
         "image_size": 384,
-		"learningrate_reducer_patience": 4,
+		"learningrate_reducer_patience": 3,
 		"early_stopping_patience": 12,
-		"batch_size": 18,
+		"batch_size": 28,
 		"model_weights": "IMAGENET1K_SWAG_E2E_V1",
-		"embedding_layer_enabled": true,
+		"embedding_layer_enabled": false,
 		"model_dropout_prob": 0,
-		"embedding_layer_dimension": 32
+		"embedding_layer_dimension": 128
     }
 ]

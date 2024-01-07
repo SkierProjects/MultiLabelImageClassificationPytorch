@@ -1,10 +1,11 @@
-from torch_geometric.nn import GCN
+import torch_geometric.nn as GCN
 import torch.nn as nn
-import torch.nn.functional as F
 import torch
 
+from utils.models.model_layers import Attention, MultiHeadAttention
+
 class GCNClassifier(nn.Module):
-    def __init__(self, base_model, num_classes, gcn_model_name, dropout_prob, gcn_model_params, edge_index, edge_weight=None):
+    def __init__(self, base_model, num_classes, gcn_model_name, dropout_prob, gcn_model_params, edge_index, edge_weight=None, use_multihead_attention=True):
         super().__init__()
         self.base_model = base_model
         self.num_classes = num_classes
@@ -23,8 +24,14 @@ class GCNClassifier(nn.Module):
         self.classifier = nn.Linear(base_model.output_dim + gcn_model_params['out_channels'], num_classes)
 
         # Initialize a placeholder for label embeddings, which will be learned during training
-        self.label_embeddings = nn.Parameter(torch.Tensor(num_classes, gcn_model_params['out_channels']))
+        self.label_embeddings = nn.Parameter(torch.Tensor(num_classes, gcn_model_params['in_channels']))
         nn.init.xavier_uniform_(self.label_embeddings)
+
+        # Initialize the appropriate attention mechanism
+        if use_multihead_attention:
+            self.attention = MultiHeadAttention(base_model.output_dim, gcn_model_params['out_channels'], 8)
+        else:
+            self.attention = Attention(base_model.output_dim, gcn_model_params['out_channels'])
 
     def forward(self, x, labels=None):
         # Get the image features from the base model
@@ -37,8 +44,8 @@ class GCNClassifier(nn.Module):
             # Use the provided labels to select the relevant embeddings for each example in the batch
             batch_label_embeddings = torch.matmul(labels.float(), label_embeddings_updated)
         else:
-            # During inference or if labels are not provided, use the precomputed label embeddings
-            batch_label_embeddings = label_embeddings_updated.mean(dim=0, keepdim=True).expand(x.size(0), -1)
+            # During inference or if labels are not provided, use the attention mechanism
+            batch_label_embeddings = self.attention(image_features, label_embeddings_updated)
 
         # Combine the image features with the label embeddings
         combined_features = torch.cat((image_features, batch_label_embeddings), dim=1)

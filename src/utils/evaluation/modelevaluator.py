@@ -87,14 +87,7 @@ class ModelEvaluator:
             config (object): An immutable configuration object with necessary parameters.
         """
         
-        model = modelfactory.create_model(
-            thisconfig.model_name,
-            requires_grad=thisconfig.model_requires_grad,
-            num_classes=thisconfig.num_classes,
-            weights=thisconfig.model_weights,
-            add_embedding_layer=thisconfig.embedding_layer_enabled,
-            embedding_dim=thisconfig.embedding_layer_dimension
-        ).to(device)
+        model = modelfactory.create_model(thisconfig).to(device)
         criterion = nn.BCEWithLogitsLoss()
 
         modelToLoadPath = pathutils.get_model_to_load_path(thisconfig)

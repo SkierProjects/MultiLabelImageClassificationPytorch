@@ -113,6 +113,6 @@ def evaluate_model(this_config=config):
         modelEvaluator.tensorBoardWriter.add_hparams(hparams, final_metrics)
 
         test_f1s_per_class, _, _ =  modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average=None)
-        tagmappings = datasetutils.get_dataset_tag_mappings(this_config)
+        tagmappings = datasetutils.get_index_to_tag_mapping()
         for class_index in range(this_config.num_classes):
             modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Test', test_f1s_per_class[class_index], epochs)

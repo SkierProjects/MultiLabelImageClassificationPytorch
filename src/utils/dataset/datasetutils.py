@@ -60,6 +60,40 @@ def get_dataset_tag_mappings(config):
     dataset_csv = __get_dataset_csv(config)
     return __get_index_to_tag_mapping(dataset_csv)
 
+def get_tag_to_index_mapping():
+    """
+    Retrieves a mapping from tag names to indices by reading from a text file.
+
+    Parameters:
+    - tags_txt_path: Path to the text file containing tags, one on each line.
+
+    Returns:
+    - A dictionary mapping tag names to indices.
+    """
+    tags_txt_path = pathutils.get_tags_path()
+    tag_to_index = {}
+    with open(tags_txt_path, 'r', encoding='utf-8') as file:
+        for index, tag in enumerate(file):
+            tag_to_index[tag.strip()] = index  # Remove any leading/trailing whitespace
+    return tag_to_index
+
+def get_index_to_tag_mapping():
+    """
+    Retrieves a mapping from indices to tag names by reading from a text file.
+
+    Parameters:
+    - tags_txt_path: Path to the text file containing tags, one on each line.
+
+    Returns:
+    - A dictionary mapping indices to tag names.
+    """
+    tags_txt_path = pathutils.get_tags_path()
+    index_to_tag = {}
+    with open(tags_txt_path, 'r', encoding='utf-8') as file:
+        for index, tag in enumerate(file):
+            index_to_tag[index] = tag.strip()  # Remove any leading/trailing whitespace
+    return index_to_tag
+
 def __get_index_to_tag_mapping(csv):
     """
     Helper function to create a mapping from column index to tag name.

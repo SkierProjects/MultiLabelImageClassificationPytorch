@@ -42,8 +42,7 @@ def main(args):
         # Save the images with overlaid predictions
         for image_path, pred in zip(flattened_image_paths, predictions):
             original_image = Image.open(image_path)
-            # TODO: this isnt very good practice because when using inference time for real, we probably wont have the dataset csv
-            annotated_image = imageutils.overlay_predictions(original_image, pred, datasetutils.get_dataset_tag_mappings(config))
+            annotated_image = imageutils.overlay_predictions(original_image, pred, datasetutils.get_index_to_tag_mapping())
             save_path = os.path.join(output_folder, os.path.basename(image_path))
             annotated_image.save(save_path)
     elif input_path.is_file():
@@ -51,8 +50,7 @@ def main(args):
             preprocessed_img = ImageDatasetPredict.preprocess_single_image(str(input_path), config)
             predicted_labels = modelEvaluator.single_image_prediction(preprocessed_img, 0.5)
             original_image = Image.open(input_path)
-            # TODO: this isnt very good practice because when using inference time for real, we probably wont have the dataset csv
-            annotated_image = imageutils.overlay_predictions(original_image, predicted_labels, datasetutils.get_dataset_tag_mappings(config))
+            annotated_image = imageutils.overlay_predictions(original_image, predicted_labels, datasetutils.get_index_to_tag_mapping())
             save_path = os.path.join(output_folder, os.path.basename(input_path))
             annotated_image.save(save_path)
 
@@ -67,8 +65,7 @@ def main(args):
             flattened_frame_counts = [frame_count for sublist in frame_counts for frame_count in sublist]
 
             save_path = os.path.join(output_folder, os.path.basename(input_path))
-            # TODO: this isnt very good practice because when using inference time for real, we probably wont have the dataset csv
-            imageutils.overlay_predictions_video(input_path, predictions, flattened_frame_counts, datasetutils.get_dataset_tag_mappings(config), save_path)
+            imageutils.overlay_predictions_video(input_path, predictions, flattened_frame_counts, datasetutils.get_index_to_tag_mapping(), save_path)
         else:
             print(f"Unsupported file type for input: {input_path}")
     else:

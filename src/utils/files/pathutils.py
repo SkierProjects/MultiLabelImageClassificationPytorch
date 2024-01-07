@@ -120,3 +120,12 @@ def get_test_many_models_json():
         Path: The path to the 'train_many_models.json' file.
     """
     return Path(get_root_path(), "src", "test_many_models.json")
+
+def get_tags_path():
+    """
+    Gets the path for the tags file containing all possible tags.
+
+    Returns:
+        Path: The path to the 'tags.text' file.
+    """
+    return Path(get_root_path(), "tags.txt")
