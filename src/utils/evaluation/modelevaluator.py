@@ -108,6 +108,39 @@ class ModelEvaluator:
             model_data=modelData
         )
     
+    @classmethod
+    def from_ensemble(cls, device, thisconfig, tensorBoardWriter=None, loadFromFile=True):
+        """
+        Creates a ModelEvaluator instance from a model file by loading in the model and preparing it
+          to be run.
+
+        Parameters:
+            device (torch.device): The device to run evaluation on (CPU or GPU).
+            tensorBoardWriter (TensorBoardWriter, optional): Writer for TensorBoard logging.
+            config (object): An immutable configuration object with necessary parameters.
+        """
+        
+        model = modelfactory.create_model(thisconfig).to(device)
+        criterion = nn.BCEWithLogitsLoss()
+        
+        if loadFromFile:
+            modelToLoadPath = pathutils.get_model_to_load_path(thisconfig)
+            modelData = modelloadingutils.load_model(modelToLoadPath, thisconfig)
+            model.load_state_dict(modelData['model_state_dict'])
+
+        model_data = {
+            "epoch": 1,
+        }
+        
+        return cls(
+            model=model,
+            criterion=criterion,
+            device=device,
+            config=thisconfig,
+            tensorBoardWriter=tensorBoardWriter,
+            model_data=model_data
+        )
+    
     def single_image_prediction(self, preprocessed_image, threshold=None):
         """Run a prediction for a single preprocessed image."""
         self.model.eval()  # Set the model to evaluation mode

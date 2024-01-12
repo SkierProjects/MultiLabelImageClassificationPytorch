@@ -6,28 +6,31 @@ class config:
     """
 
     # Default static property values
-    model_name = 'regnet_y_16gf'
+    model_name = 'convnext_large'
     model_requires_grad = True
     num_classes = 31
-    model_dropout_prob = 10
-    model_weights = 'IMAGENET1K_SWAG_E2E_V1'
-    image_size = 384
-    batch_size = 18
-    learning_rate = 1e-4
+    model_dropout_prob = 0
+    model_weights = 'DEFAULT'
+    image_size = 400
+    batch_size = 24
+    learning_rate = 1e-2
     num_epochs = 50
-    continue_training = True
+    continue_training = False
     model_name_to_load = "best_model"
-    early_stopping_patience = 8
+    early_stopping_patience = 10
     early_stopping_threshold = 8e-3
-    learningrate_reducer_patience = 3
-    learningrate_reducer_threshold = 2e-2
+    learningrate_reducer_patience = 2
+    learningrate_reducer_threshold = 1e-2
     learningrate_reducer_factor = 0.1
     learningrate_reducer_min_lr = 1e-7
 
     embedding_layer_enabled = False
-    embedding_layer_dimension = 64
-    gcn_enabled = True
+    embedding_layer_dimension = 512
+    gcn_enabled = False
     gcn_model_name = "GAT"
+    gcn_out_channels = 512
+    gcn_layers = 4
+    attention_layer_num_heads = 8
     # Define the edges
     gcn_edge_index = torch.tensor(
         [[18, 19, 13, 19, 26, 19,  2,  3, 14, 19,  1, 19, 29, 19,  8, 19, 17, 26,
@@ -65,7 +68,7 @@ class config:
 
     dataset_file_name = "dataset.csv"
 
-    model_to_load_raw_weights = "regnet_y_16gf_384_0.7273"
+    model_to_load_raw_weights = ""
 
     store_gradients_epoch_interval = 5
 
@@ -76,6 +79,7 @@ class config:
     train_percentage = 80
     valid_percentage = 10
     test_percentage = 10
+    ensemble_model_configs = []
 
     def __init__(self, config_path=None):
         """
@@ -102,6 +106,9 @@ class config:
         new_instance = cls()  # Create a new instance with default values
         for key, value in config_data.items():
             normalized_key = key.lower()  # Normalize the key to lowercase
-            if hasattr(new_instance, normalized_key):
+            if normalized_key == 'ensemble_model_configs':
+                # Recursively load ensemble models
+                new_instance.ensemble_model_configs = [cls.load_from_json(ensemble_config_data) for ensemble_config_data in value]
+            elif hasattr(new_instance, normalized_key):
                 setattr(new_instance, normalized_key, value)
         return new_instance

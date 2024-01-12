@@ -29,8 +29,8 @@ def main(json_file_path):
         logger.info(f"Starting Evaluating for model: {config_instance.model_name}, image size: {config_instance.image_size}, weights: {config_instance.model_weights}")
         try:
             evaluate_model(config_instance)
-        except Exception:
-            logger.error("Failed testing for model: {config_instance.model_name}, image size: {config_instance.image_size}, weights: {config_instance.model_weights}")
+        except Exception as e:
+            logger.error(f"Failed testing for model: {config_instance.model_name}, image size: {config_instance.image_size}, weights: {config_instance.model_weights} Inner:{e.strerror}")
 
 if __name__ == '__main__':
     # Get the path to the JSON file containing the model configurations

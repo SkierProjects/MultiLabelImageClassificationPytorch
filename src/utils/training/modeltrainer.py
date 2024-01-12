@@ -64,23 +64,9 @@ class ModelTrainer():
             self.best_f1_score = modelData["f1_score"]
             self.start_epoch = modelData["epoch"] + 1
             self.epochs = self.epochs + self.start_epoch
-            self.best_model_state = {
-                'epoch': modelData["epoch"],
-                'model_state_dict': self.model.state_dict(),
-                'optimizer_state_dict': self.optimizer.state_dict(),
-                'loss': self.criterion,
-                'f1_score': self.best_f1_score,
-                'model_name': self.config.model_name,
-                'image_size': self.config.image_size,
-                'requires_grad': self.config.model_requires_grad,
-                'num_classes': self.config.num_classes,
-                'dropout': self.config.model_dropout_prob,
-                'embedding_layer': self.config.embedding_layer_enabled,
-                'gcn_enabled': self.config.gcn_enabled,
-                'batch_size': self.config.batch_size,
-                'optimizer': 'Adam',
-                'loss_function': 'BCEWithLogitsLoss'
-            }
+            self.__set_best_model_state(modelData["epoch"])
+
+            
         else:
             self.best_f1_score = 0.0
             self.start_epoch = 0
@@ -130,7 +116,7 @@ class ModelTrainer():
             self.optimizer.zero_grad()
 
             if (self.config.embedding_layer_enabled or self.config.gcn_enabled):
-                label_dropout_rate = 0.3
+                label_dropout_rate = 0.9
                 use_labels = random.random() > label_dropout_rate
                 if use_labels:
                     outputs = self.model(images, targets)
@@ -138,6 +124,11 @@ class ModelTrainer():
                     outputs = self.model(images)
             else:
                 outputs = self.model(images)
+
+            # Verify that outputs and targets have the same shape
+            if outputs.shape != targets.shape:
+                logger.error(f"Mismatched shapes detected: Outputs shape: {outputs.shape}, Targets shape: {targets.shape}")
+                # Here you could also raise an exception or handle the error in some way
             loss = self.criterion(outputs, targets)
             train_running_loss += loss.item()
             loss.backward()
@@ -230,22 +221,7 @@ class ModelTrainer():
         if self.last_valid_f1 > self.best_f1_score:
             logger.info(f"Validation F1 Score improved from {self.best_f1_score:.4f} to {self.last_valid_f1:.4f}")
             self.best_f1_score = self.last_valid_f1
-            self.best_model_state = {
-                'epoch': self.current_epoch,
-                'model_state_dict': self.model.state_dict(),
-                'optimizer_state_dict': self.optimizer.state_dict(),
-                'loss': self.criterion,
-                'f1_score': self.best_f1_score,
-                'model_name': self.config.model_name,
-                'requires_grad': self.config.model_requires_grad,
-                'num_classes': self.config.num_classes,
-                'dropout': self.config.model_dropout_prob,
-                'embedding_layer': self.config.embedding_layer_enabled,
-                'gcn_enabled': self.config.gcn_enabled,
-                'batch_size': self.config.batch_size,
-                'optimizer': 'Adam',
-                'loss_function': 'BCEWithLogitsLoss'
-            }
+            self.__set_best_model_state(self.current_epoch)
 
             modelloadingutils.save_best_model(self.best_model_state)
 
@@ -316,3 +292,26 @@ class ModelTrainer():
         #assert weights.shape[0] == self.config.num_classes, "pos_weight must have the same size as num_classes"
         
         return weights
+    def __set_best_model_state(self, epoch):
+        self.best_model_state = {
+            'epoch': epoch,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'loss': self.criterion,
+            'f1_score': self.best_f1_score,
+            'model_name': self.config.model_name,
+            'requires_grad': self.config.model_requires_grad,
+            'num_classes': self.config.num_classes,
+            'dropout': self.config.model_dropout_prob,
+            'embedding_layer': self.config.embedding_layer_enabled,
+            'gcn_enabled': self.config.gcn_enabled,
+            'batch_size': self.config.batch_size,
+            'optimizer': 'Adam',
+            'loss_function': 'BCEWithLogitsLoss',
+            'image_size':  self.config.image_size,
+            'gcn_model_name': self.config.gcn_model_name,
+            'gcn_out_channels': self.config.gcn_out_channels,
+            'gcn_layers': self.config.gcn_layers,
+            'attention_layer_num_heads': self.config.attention_layer_num_heads,
+            'embedding_layer_dimension': self.config.embedding_layer_dimension,
+        }

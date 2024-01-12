@@ -57,11 +57,12 @@ def load_model(model_path, config):
 
 def add_model_data(checkpoint, config):
     model_data = {}
-    model_data["f1_score"] = checkpoint.get('f1_score', -1)
     model_data["epoch"] = checkpoint.get('epoch', 0)
+    model_data["model_state_dict"] = checkpoint.get('model_state_dict', -1)
+    model_data["optimizer_state_dict"] = checkpoint.get('optimizer_state_dict', -1)
     model_data["loss"] = checkpoint.get('loss', -1)
+    model_data["f1_score"] = checkpoint.get('f1_score', -1)
     model_data["model_name"] = checkpoint.get('model_name', config.model_name)
-    model_data["image_size"] = checkpoint.get('image_size', config.image_size)
     model_data["requires_grad"] = checkpoint.get('requires_grad', True)
     model_data["num_classes"] = checkpoint.get('num_classes', config.num_classes)
     model_data["dropout"] = checkpoint.get('dropout', 0)
@@ -70,13 +71,21 @@ def add_model_data(checkpoint, config):
     model_data["batch_size"] = checkpoint.get('batch_size', config.batch_size)
     model_data["optimizer"] = checkpoint.get('optimizer', 'Adam')
     model_data["loss_function"] = checkpoint.get('loss_function', 'BCEWithLogitsLoss')
-    model_data["model_state_dict"] = checkpoint.get('model_state_dict', -1)
-    model_data["optimizer_state_dict"] = checkpoint.get('optimizer_state_dict', -1)
+    model_data["image_size"] = checkpoint.get('image_size', config.image_size)
+    model_data["gcn_model_name"] = checkpoint.get('gcn_model_name', config.gcn_model_name)
+    model_data["gcn_out_channels"] = checkpoint.get('gcn_out_channels', config.gcn_out_channels)
+    model_data["gcn_layers"] = checkpoint.get('gcn_layers', config.gcn_layers)
+    model_data["attention_layer_num_heads"] = checkpoint.get('attention_layer_num_heads', config.attention_layer_num_heads)
+    model_data["embedding_layer_dimension"] = checkpoint.get('embedding_layer_dimension', config.embedding_layer_dimension)
+
+    
     return model_data
 
 def update_config_from_model_file(config):
     pattern = r"(.+?)_(\d{3})_\d\.\d{4}"
     file_name = config.model_name_to_load
+    if not file_name:
+        return
     match = re.match(pattern, file_name)
     if match:
         # If there's a match, get the model name and image size

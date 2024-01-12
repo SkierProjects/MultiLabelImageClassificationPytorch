@@ -5,7 +5,7 @@ import torch
 from utils.models.model_layers import Attention, MultiHeadAttention
 
 class GCNClassifier(nn.Module):
-    def __init__(self, base_model, num_classes, gcn_model_name, dropout_prob, gcn_model_params, edge_index, edge_weight=None, use_multihead_attention=True):
+    def __init__(self, base_model, num_classes, gcn_model_name, dropout_prob, gcn_model_params, edge_index, edge_weight=None, use_multihead_attention=True, num_heads=4):
         super().__init__()
         self.base_model = base_model
         self.num_classes = num_classes
@@ -29,7 +29,7 @@ class GCNClassifier(nn.Module):
 
         # Initialize the appropriate attention mechanism
         if use_multihead_attention:
-            self.attention = MultiHeadAttention(base_model.output_dim, gcn_model_params['out_channels'], 8)
+            self.attention = MultiHeadAttention(base_model.output_dim, gcn_model_params['out_channels'], num_heads)
         else:
             self.attention = Attention(base_model.output_dim, gcn_model_params['out_channels'])
 

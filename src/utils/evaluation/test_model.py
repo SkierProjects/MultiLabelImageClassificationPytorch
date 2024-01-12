@@ -18,7 +18,7 @@ def evaluate_model(this_config=config):
     valid_test_loader = datasetutils.get_data_loader_by_name("valid+test", config=this_config, shuffle=True)
 
     # intialize the model
-    with ModelEvaluator.from_file(device, this_config, TensorBoardWriter(config=this_config)) as modelEvaluator:
+    with get_model_evaluator(this_config, device) as modelEvaluator:
         epochs = modelEvaluator.model_data["epoch"]
 
         valid_start_time = time.time()
@@ -116,3 +116,14 @@ def evaluate_model(this_config=config):
         tagmappings = datasetutils.get_index_to_tag_mapping()
         for class_index in range(this_config.num_classes):
             modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Test', test_f1s_per_class[class_index], epochs)
+
+        val_test_f1s_per_class, _, _ =  modelEvaluator.evaluate_predictions(valid_test_loader, validtest_predictions, validtest_correct_labels, epochs, threshold=0.5, average=None)
+        tagmappings = datasetutils.get_index_to_tag_mapping()
+        for class_index in range(this_config.num_classes):
+            modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Valid+Test', test_f1s_per_class[class_index], epochs)
+
+def get_model_evaluator(config, device):
+    if config.ensemble_model_configs:
+        return ModelEvaluator.from_ensemble(device, config, TensorBoardWriter(config=config))
+    else:
+        return ModelEvaluator.from_file(device, config, TensorBoardWriter(config=config))
