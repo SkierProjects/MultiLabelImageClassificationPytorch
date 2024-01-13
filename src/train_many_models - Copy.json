@@ -1,8 +1,7 @@
 [
     {	
-		"model_name": "Ensemble_Mean",
+		"model_name": "Ensemble_Linear_3",
 		"batch_size": 72,
-		"model_name_to_load": "",
         "ensemble_model_configs": [
 			{
 				"model_name_to_load": "convnext_large_400_0.7326",

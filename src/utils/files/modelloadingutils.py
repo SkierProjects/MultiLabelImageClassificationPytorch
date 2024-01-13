@@ -77,6 +77,7 @@ def add_model_data(checkpoint, config):
     model_data["gcn_layers"] = checkpoint.get('gcn_layers', config.gcn_layers)
     model_data["attention_layer_num_heads"] = checkpoint.get('attention_layer_num_heads', config.attention_layer_num_heads)
     model_data["embedding_layer_dimension"] = checkpoint.get('embedding_layer_dimension', config.embedding_layer_dimension)
+    model_data["train_loss"] = checkpoint.get('train_loss', 0)
 
     
     return model_data

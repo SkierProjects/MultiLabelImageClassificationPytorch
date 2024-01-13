@@ -1,36 +1,30 @@
 [
+	{	
+		"model_name": "efficientnet_v2_l",
+		"batch_size": 12,
+		"model_dropout_prob": 0,
+		"continue_training": true,
+		"learning_rate": 1e-5,
+		"model_name_to_load": "efficientnet_v2_l_400_0.7541"
+    },
     {	
-		"model_name": "Ensemble_EinsumLayer",
-		"batch_size": 72,
-        "ensemble_model_configs": [
-			{
-				"model_name_to_load": "convnext_large_400_0.7326",
-				"batch_size": 72,
-				"image_size": 400
-			},
-			{
-				"model_name_to_load": "regnet_y_16gf_384_0.7273",
-				"model_weights": "IMAGENET1K_SWAG_E2E_V1",
-				"batch_size": 72,
-				"image_size": 384
-			},
-			{
-				"model_name_to_load": "resnext101_64x4d_400_0.7220",
-				"batch_size": 72,
-				"image_size": 400
-			},
-			{
-				"model_name_to_load": "efficientnet_v2_m_400_0.7212",
-				"batch_size": 72,
-				"image_size": 400
-			},
-			{
-				"model_name_to_load": "regnet_y_16gf_384_0.7298_GCN",
-				"model_weights": "IMAGENET1K_SWAG_E2E_V1",
-				"batch_size": 72,
-				"image_size": 384,
-				"gcn_enabled": true
-			}
-		]
+		"model_name": "convnext_base",
+		"model_dropout_prob": 0,
+		"batch_size": 22
+    },
+	{	
+		"model_name": "regnet_y_128gf",
+		"model_weights": "IMAGENET1K_SWAG_E2E_V1",
+		"batch_size": 5
+    },
+	{	
+		"model_name": "efficientnet_v2_s",
+		"model_dropout_prob": 0,
+		"batch_size": 36
+    },
+	{	
+		"model_name": "efficientnet_v2_s",
+		"model_dropout_prob": 0,
+		"batch_size": 36
     }
 ]

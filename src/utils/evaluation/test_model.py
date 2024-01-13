@@ -107,7 +107,8 @@ def evaluate_model(this_config=config):
             'ImagesPerSecond/Validation': valid_images_per_second,
             'ImagesPerSecond/Test': test_images_per_second,
             'ImagesPerSecond/Valid+Test': valid_test_images_per_second,
-            'ImagesPerSecond/Average': avg_images_per_second
+            'ImagesPerSecond/Average': avg_images_per_second,
+            'Loss/TrainOverTest+ValidRatio': modelEvaluator.model_data["train_loss"] / validtest_loss
         }
         modelEvaluator.tensorBoardWriter.add_scalars_from_dict(final_metrics, epochs)
         modelEvaluator.tensorBoardWriter.add_hparams(hparams, final_metrics)
@@ -120,7 +121,7 @@ def evaluate_model(this_config=config):
         val_test_f1s_per_class, _, _ =  modelEvaluator.evaluate_predictions(valid_test_loader, validtest_predictions, validtest_correct_labels, epochs, threshold=0.5, average=None)
         tagmappings = datasetutils.get_index_to_tag_mapping()
         for class_index in range(this_config.num_classes):
-            modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Valid+Test', test_f1s_per_class[class_index], epochs)
+            modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Valid+Test', val_test_f1s_per_class[class_index], epochs)
 
 def get_model_evaluator(config, device):
     if config.ensemble_model_configs:

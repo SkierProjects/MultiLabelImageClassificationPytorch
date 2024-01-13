@@ -85,21 +85,49 @@ class ImageDataset(Dataset):
         else:
             raise ValueError("Mode must be 'train', 'valid', 'test', or 'valid+test'.")
 
+    # Define a function to scale the augmentation parameters based on input level (0-10)
+    def scale_parameter(self, min_val, max_val, level):
+        """Scales the parameter based on the augmentation level (0-10)."""
+        return min_val + (max_val - min_val) * level / 10
+
     def train_transforms(self):
-    
-        return transforms.Compose([
+        augmentation_level = self.config.augmentation_level
+        assert 0 <= augmentation_level <= 10, "Augmentation level must be between 0 and 10"
+
+        # Define the augmentation parameters scaled by the augmentation_level
+        horizontal_flip_prob = self.scale_parameter(0, 0.5, augmentation_level)
+        color_jitter_brightness = self.scale_parameter(0, 0.5, augmentation_level)
+        color_jitter_contrast = self.scale_parameter(0, 0.5, augmentation_level)
+        color_jitter_saturation = self.scale_parameter(0, 0.5, augmentation_level)
+        rotation_degrees = self.scale_parameter(0, 45, augmentation_level)
+        affine_transform_degrees = self.scale_parameter(0, 10, augmentation_level)
+        affine_transform_translate = self.scale_parameter(0, 0.05, augmentation_level)
+        affine_transform_scale_min = self.scale_parameter(1, 0.95, augmentation_level)
+        affine_transform_scale_max = self.scale_parameter(1, 1.05, augmentation_level)
+        perspective_distortion_scale = self.scale_parameter(0, 0.2, augmentation_level)
+        gaussian_blur_sigma = self.scale_parameter(0.1, 2, augmentation_level)
+        random_erasing_prob = self.scale_parameter(0, 0.3, augmentation_level)
+
+        # Now, create the list of transforms with the scaled parameters
+        transforms_list = [
             transforms.ToPILImage(),
-            transforms.RandomResizedCrop((self.image_size, self.image_size)),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
-            transforms.RandomRotation(degrees=45),
-            transforms.RandomAffine(degrees=10, translate=(0.05, 0.05), scale=(0.95, 1.05)),
-            transforms.RandomPerspective(distortion_scale=0.2, p=0.2),
-            transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 2)),
+            transforms.Resize((self.image_size, self.image_size)),
+            transforms.RandomHorizontalFlip(p=horizontal_flip_prob) if augmentation_level > 0 else None,
+            transforms.ColorJitter(brightness=color_jitter_brightness, contrast=color_jitter_contrast, saturation=color_jitter_saturation) if augmentation_level > 0 else None,
+            transforms.RandomRotation(degrees=rotation_degrees) if augmentation_level > 0 else None,
+            transforms.RandomAffine(degrees=affine_transform_degrees, translate=(affine_transform_translate, affine_transform_translate),
+                                    scale=(affine_transform_scale_min, affine_transform_scale_max)) if augmentation_level > 0 else None,
+            transforms.RandomPerspective(distortion_scale=perspective_distortion_scale, p=0.5) if augmentation_level > 0 else None,
+            transforms.GaussianBlur(kernel_size=(5, 9), sigma=gaussian_blur_sigma) if augmentation_level > 0 else None,
             transforms.ToTensor(),
-            transforms.RandomErasing(p=0.3, scale=(0.02, 0.1), ratio=(0.3, 3.3), value=0, inplace=False),  # Moved after ToTensor
+            transforms.RandomErasing(p=random_erasing_prob, scale=(0.02, 0.1), ratio=(0.3, 3.3), value=0) if augmentation_level > 0 else None,
             transforms.Normalize(mean=self.config.dataset_normalization_mean, std=self.config.dataset_normalization_std),
-        ])
+        ]
+
+        # Filter out None transforms (i.e., when augmentation_level is 0)
+        transforms_list = [t for t in transforms_list if t is not None]
+
+        return transforms.Compose(transforms_list)
 
     def valid_transforms(self):
         return transforms.Compose([

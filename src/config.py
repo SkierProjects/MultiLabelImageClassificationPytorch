@@ -6,24 +6,24 @@ class config:
     """
 
     # Default static property values
-    model_name = 'convnext_large'
+    model_name = 'regnet_y_16gf'
     model_requires_grad = True
     num_classes = 31
-    model_dropout_prob = 0
+    model_dropout_prob = 10
     model_weights = 'DEFAULT'
     image_size = 400
     batch_size = 24
-    learning_rate = 1e-2
+    learning_rate = 1e-4
     num_epochs = 50
     continue_training = False
     model_name_to_load = "best_model"
     early_stopping_patience = 10
-    early_stopping_threshold = 8e-3
-    learningrate_reducer_patience = 2
-    learningrate_reducer_threshold = 1e-2
+    early_stopping_threshold = 5e-3
+    learningrate_reducer_patience = 3
+    learningrate_reducer_threshold = 2e-3
     learningrate_reducer_factor = 0.1
     learningrate_reducer_min_lr = 1e-7
-
+    augmentation_level = 2
     embedding_layer_enabled = False
     embedding_layer_dimension = 512
     gcn_enabled = False

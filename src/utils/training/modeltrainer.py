@@ -55,13 +55,11 @@ class ModelTrainer():
             logger.info("Loading the best model...")    
             if self.config.embedding_layer_enabled or self.config.gcn_enabled and self.config.model_to_load_raw_weights != "":
                 self.model, modelData = modelloadingutils.load_pretrained_weights_exclude_classifier(self.model, self.config, False)
-                modelData["f1_score"] = 0.0
             else:
                 modelData = modelloadingutils.load_model(modelToLoadPath, self.config)
                 self.model.load_state_dict(modelData['model_state_dict'])
-                self.optimizer.load_state_dict(modelData['optimizer_state_dict'])
+                #self.optimizer.load_state_dict(modelData['optimizer_state_dict'])
 
-            self.best_f1_score = modelData["f1_score"]
             self.start_epoch = modelData["epoch"] + 1
             self.epochs = self.epochs + self.start_epoch
             self.__set_best_model_state(modelData["epoch"])
@@ -314,4 +312,5 @@ class ModelTrainer():
             'gcn_layers': self.config.gcn_layers,
             'attention_layer_num_heads': self.config.attention_layer_num_heads,
             'embedding_layer_dimension': self.config.embedding_layer_dimension,
+            'train_loss': self.last_train_loss
         }

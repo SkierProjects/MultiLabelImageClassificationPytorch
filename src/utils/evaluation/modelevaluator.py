@@ -109,7 +109,7 @@ class ModelEvaluator:
         )
     
     @classmethod
-    def from_ensemble(cls, device, thisconfig, tensorBoardWriter=None, loadFromFile=True):
+    def from_ensemble(cls, device, thisconfig, tensorBoardWriter=None, loadFromFile=False):
         """
         Creates a ModelEvaluator instance from a model file by loading in the model and preparing it
           to be run.
@@ -244,6 +244,9 @@ class ModelEvaluator:
         predictions_binary = metricutils.getpredictions_with_threshold(prediction_outputs, threshold)
         # Compute evaluation metrics
         precision, recall, f1 = metricutils.compute_metrics(true_labels, predictions_binary, average=average)
+        #if f1 >= 0.9:
+            #something is wrong
+        #    i = 1
         # Log images with predictions to TensorBoard for a random batch, if configured
         if metricMode is not None and self.tensorBoardWriter is not None and datasetSubset is not None:
             random_batch_index = random.randint(0, len(data_loader) - 1)
