@@ -19,7 +19,7 @@ class TensorBoardWriter():
         elif self.config.gcn_enabled:
             modelAddons = f"_GCN_{config.embedding_layer_dimension}_{config.gcn_out_channels}_{config.gcn_layers}_{config.attention_layer_num_heads}"
         log_dir = pathutils.combine_path(
-            pathutils.get_tensorboard_log_dir_path(),
+            pathutils.get_tensorboard_log_dir_path(config),
             f'{config.model_name}_{config.model_weights}_{config.model_image_size}_{config.model_dropout_prob}{modelAddons}'
         )
         self.writer = SummaryWriter(log_dir)
@@ -60,7 +60,7 @@ class TensorBoardWriter():
         """
         denormalized_images = imageutils.denormalize_images(images, self.config)
         pil_images = imageutils.convert_to_PIL(denormalized_images)
-        overlaid_images = imageutils.overlay_predictions_batch(pil_images, predictions.cpu().tolist(), datasetutils.get_index_to_tag_mapping(), true_labels.cpu().tolist())
+        overlaid_images = imageutils.overlay_predictions_batch(pil_images, predictions.cpu().tolist(), datasetutils.get_index_to_tag_mapping(self.config), true_labels.cpu().tolist())
         tensor_overlaid_images = imageutils.convert_PIL_to_tensors(overlaid_images)
         self.add_images(f'{runmode}/{dataSubset}/Images', denormalized_images, step)
         self.add_images(f'{runmode}/{dataSubset}/True Labels', imageutils.convert_labels_to_color(true_labels.cpu(), self.config.num_classes), step)

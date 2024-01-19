@@ -1,6 +1,7 @@
 import json
 import torch
 import yaml
+import copy
 
 class Config:
     def __init__(self, default_config_path=None):
@@ -83,6 +84,14 @@ class Config:
         self.train_percentage = 80
         self.valid_percentage = 10
         self.test_percentage = 10
+        self.paths_output_folder = ""
+        self.paths_log_folder = ""
+        self.paths_tensorboard_log_folder = ""
+        self.paths_dataset = ""
+        self.paths_train_many_models = ""
+        self.paths_test_many_models = ""
+        self.paths_tags = ""
+        self.paths_graph = ""
         self.ensemble_model_configs = None
         if default_config_path:
             self.load_config(default_config_path)
@@ -105,18 +114,18 @@ class Config:
         else:
             raise ValueError(f"Unsupported configuration file format: {extension}")
 
-        self.update_config(config_data)
+        self.update_config(config_data, self)
 
-    def update_config(self, new_config):
+    def update_config(self, new_config, default_config):
         self.__update_config(new_config)
-        if self.gcn_edge_index is not None:
+        if self.gcn_edge_index is not None and not isinstance(self.gcn_edge_index, torch.Tensor):
             self.gcn_edge_index = torch.tensor(self.gcn_edge_index)
 
-        if self.gcn_edge_weights is not None:
+        if self.gcn_edge_weights is not None and not isinstance(self.gcn_edge_weights, torch.Tensor):
             self.gcn_edge_weights = torch.tensor(self.gcn_edge_weights)
 
         if self.ensemble_model_configs is not None:
-            self.ensemble_model_configs = [Config.from_dict(ensemble_config_data) for ensemble_config_data in self.ensemble_model_configs]
+            self.ensemble_model_configs = [Config.from_dict(ensemble_config_data, default_config) for ensemble_config_data in self.ensemble_model_configs]
 
     def __update_config(self, new_config, prefix=''):
         """
@@ -146,13 +155,17 @@ class Config:
             raise AttributeError(f"'Config' object has no attribute '{name}'")
 
     @classmethod
-    def from_dict(cls, dict):
-        new_instance = cls()
-        new_instance.update_config(dict)
+    def from_dict(cls, config_dict, default_config=None):
+        if default_config is None:
+            new_instance = cls()
+        else:
+            new_instance = copy.deepcopy(default_config)
+
+        new_instance.update_config(config_dict, default_config)
         return new_instance
 
     @staticmethod
-    def load_configs_from_file(file_path):
+    def load_configs_from_file(file_path, default_config):
         """
         Load model configurations from a JSON or yaml file.
         
@@ -171,4 +184,4 @@ class Config:
                 config_data = yaml.safe_load(f)
         else:
             raise ValueError(f"Unsupported configuration file format: {extension}")
-        return [Config.from_dict(config) for config in config_data]
+        return [Config.from_dict(config, default_config) for config in config_data]

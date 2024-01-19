@@ -6,7 +6,6 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
 from imclaslib.logging.loggerfactory import LoggerFactory
-import pandas as pd
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 class ImageDataset(Dataset):

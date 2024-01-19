@@ -2,23 +2,14 @@ from pathlib import Path
 from datetime import datetime
 import sys
 
-def get_root_path():
-    """
-    Gets the project's root directory path.
-
-    Returns:
-        Path: The root directory path as a Path object.
-    """
-    return Path(__file__).resolve().parents[3]
-
-def get_best_model_path():
+def get_best_model_path(config):
     """
     Gets the path for the best model's checkpoint file.
 
     Returns:
         Path: The path for the best model's checkpoint file.
     """
-    return Path(get_output_dir_path(), "best_model.pth")
+    return Path(get_output_dir_path(config), "best_model.pth")
 
 def get_model_to_load_path(config):
     """
@@ -30,38 +21,35 @@ def get_model_to_load_path(config):
     Returns:
         Path: The path for the model to loads checkpoint file.
     """
-    return Path(get_output_dir_path(), f"{config.model_name_to_load}.pth")
+    return Path(get_output_dir_path(config), f"{config.model_name_to_load}.pth")
 
-def get_log_dir_path():
+def get_log_dir_path(config):
     """
     Gets the path for the project's log directory, creating it if it doesn't exist.
 
     Returns:
         Path: The log directory path.
     """
-    log_directory = Path(get_root_path(), "logs")
-    log_directory.mkdir(exist_ok=True)
-    return log_directory
+    return Path(config.paths_log_folder)
 
-def get_tensorboard_log_dir_path():
+
+def get_tensorboard_log_dir_path(config):
     """
     Gets the path for the TensorBoard log directory.
 
     Returns:
         Path: The TensorBoard log directory path.
     """
-    tensorboard_log_directory = Path(get_root_path(), "tensorboard_logs")
-    return tensorboard_log_directory
+    return Path(config.paths_tensorboard_log_folder)
 
-def get_output_dir_path():
+def get_output_dir_path(config):
     """
     Gets the path for the project's output directory.
 
     Returns:
         Path: The output directory path.
     """
-    output_directory = Path(get_root_path(), "outputs")
-    return output_directory
+    return Path(config.paths_output_folder)
 
 def combine_path(*args):
     """
@@ -84,13 +72,6 @@ def get_datetime():
     """
     return datetime.now().strftime("%Y%m%d_%H%M%S")
 
-def setup_sys_path():
-    """
-    Prepends the project's root directory to the system path.
-    """
-    rootpath = str(get_root_path())
-    sys.path.insert(0, rootpath)
-
 def get_dataset_path(config):
     """
     Gets the path for the dataset file based on the configuration.
@@ -101,31 +82,34 @@ def get_dataset_path(config):
     Returns:
         Path: The dataset file path.
     """
-    return Path(get_root_path(), "Dataset", config.dataset_file_name)
+    return Path(config.paths_dataset)
 
-def get_train_many_models_file():
+def get_train_many_models_file(config):
     """
     Gets the path for the JSON file containing configurations for training many models.
 
     Returns:
         Path: The path to the 'train_many_models.json' file.
     """
-    return Path(get_root_path(), "src", "train_many_models.yml")
+    return Path(config.paths_train_many_models)
 
-def get_test_many_models_file():
+def get_test_many_models_file(config):
     """
     Gets the path for the JSON file containing configurations for training many models.
 
     Returns:
         Path: The path to the 'train_many_models.json' file.
     """
-    return Path(get_root_path(), "src", "test_many_models.yml")
+    return Path(config.paths_test_many_models)
 
-def get_tags_path():
+def get_tags_path(config):
     """
     Gets the path for the tags file containing all possible tags.
 
     Returns:
         Path: The path to the 'tags.text' file.
     """
-    return Path(get_root_path(), "tags.txt")
+    return Path(config.paths_tags)
+
+def get_graph_path(config):
+    return Path(config.paths_graph)

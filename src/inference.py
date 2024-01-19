@@ -1,8 +1,5 @@
 from imclaslib.config import Config
 import imclaslib.files.pathutils as pathutils
-# Set up system path for relative imports
-pathutils.setup_sys_path()
-
 import argparse
 import os
 import torch
@@ -17,7 +14,7 @@ from PIL import Image
 from imclaslib.logging.loggerfactory import LoggerFactory
 config = Config("default_config.yml")
 logger = LoggerFactory.setup_logging("logger", log_file=pathutils.combine_path(
-    pathutils.get_log_dir_path(), 
+    pathutils.get_log_dir_path(config), 
     f"{config.model_name}_{config.model_image_size}_{config.model_weights}",
     f"train__{pathutils.get_datetime()}.log"), config=config)
 
@@ -42,7 +39,7 @@ def main(args):
         # Save the images with overlaid predictions
         for image_path, pred in zip(flattened_image_paths, predictions):
             original_image = Image.open(image_path)
-            annotated_image = imageutils.overlay_predictions(original_image, pred, datasetutils.get_index_to_tag_mapping())
+            annotated_image = imageutils.overlay_predictions(original_image, pred, datasetutils.get_index_to_tag_mapping(config))
             save_path = os.path.join(output_folder, os.path.basename(image_path))
             annotated_image.save(save_path)
     elif input_path.is_file():
@@ -50,7 +47,7 @@ def main(args):
             preprocessed_img = ImageDatasetPredict.preprocess_single_image(str(input_path), config)
             predicted_labels = modelEvaluator.single_image_prediction(preprocessed_img, 0.5)
             original_image = Image.open(input_path)
-            annotated_image = imageutils.overlay_predictions(original_image, predicted_labels, datasetutils.get_index_to_tag_mapping())
+            annotated_image = imageutils.overlay_predictions(original_image, predicted_labels, datasetutils.get_index_to_tag_mapping(config))
             save_path = os.path.join(output_folder, os.path.basename(input_path))
             annotated_image.save(save_path)
 
@@ -65,7 +62,7 @@ def main(args):
             flattened_frame_counts = [frame_count for sublist in frame_counts for frame_count in sublist]
 
             save_path = os.path.join(output_folder, os.path.basename(input_path))
-            imageutils.overlay_predictions_video(input_path, predictions, flattened_frame_counts, datasetutils.get_index_to_tag_mapping(), save_path)
+            imageutils.overlay_predictions_video(input_path, predictions, flattened_frame_counts, datasetutils.get_index_to_tag_mapping(config), save_path)
         else:
             print(f"Unsupported file type for input: {input_path}")
     else:

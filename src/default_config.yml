@@ -5,16 +5,16 @@ model:
     dropout_prob: 0
     weights: 'DEFAULT'
 batch_size: 24
-learning_rate: 1e-4
+learning_rate: 1.0e-4
 num_epochs: 50
 continue_training: false
 model_name_to_load: ''
 early_stopping_patience: 6
-early_stopping_threshold: 4e-3
+early_stopping_threshold: 4.0e-3
 learningrate_reducer_patience: 2
-learningrate_reducer_threshold: 2e-3
+learningrate_reducer_threshold: 2.0e-3
 learningrate_reducer_factor: 0.1
-learningrate_reducer_min_lr: 1e-7
+learningrate_reducer_min_lr: 1.0e-7
 augmentation_level: 0
 embedding_layer_enabled: false
 embedding_layer_dimension: 512
@@ -56,6 +56,7 @@ gcn_edge_weights: [ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000
 log_level: 'DEBUG'
 dataset_file_name: 'dataset.csv'
 model_to_load_raw_weights: ''
+model_to_load_raw_weights: ''
 store_gradients_epoch_interval: 5
 check_test_loss_epoch_interval: 10
 dataset_normalization_mean: [0.4805, 0.3967, 0.3589]
@@ -63,3 +64,12 @@ dataset_normalization_std: [0.3207, 0.2930, 0.2824]
 train_percentage: 80
 valid_percentage: 10
 test_percentage: 10
+paths:
+    output_folder: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\outputs' #specify your path here
+    log_folder: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\logs' #specify your path here
+    tensorboard_log_folder: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\tensorboard_logs' #specify your path here
+    dataset: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\Dataset\dataset.csv' #specify your path here
+    train_many_models: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\src\train_many_models.json' #specify your path here
+    test_many_models: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\src\test_many_models.json' #specify your path here
+    tags: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\tags.txt' #specify your path here
+    graph: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\Dataset\graph_commons.csv' #specify your path here

@@ -6,14 +6,14 @@ import re
 
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
-def save_best_model(model_state):
+def save_best_model(model_state, config):
     """
     Saves the best model state to the predetermined best model path.
 
     Parameters:
         model_state (dict): State dictionary of the model to be saved.
     """
-    torch.save(model_state, pathutils.get_best_model_path())
+    torch.save(model_state, pathutils.get_best_model_path(config))
 
 def save_final_model(model_state, f1_score, config):
     """
@@ -29,7 +29,7 @@ def save_final_model(model_state, f1_score, config):
         modelAddons = "_EmbeddingLayer"
     elif config.gcn_enabled:
         modelAddons = "_GCN"
-    final_model_path_template = os.path.join(str(pathutils.get_output_dir_path()), '{model_name}_{image_size}_{f1_score:.4f}{modelAddons}.pth')
+    final_model_path_template = os.path.join(str(pathutils.get_output_dir_path(config)), '{model_name}_{image_size}_{f1_score:.4f}{modelAddons}.pth')
     final_model_path = final_model_path_template.format(
         model_name=config.model_name,
         image_size=config.model_image_size,
@@ -107,7 +107,7 @@ def update_config_from_model_file(config):
         return
     
 def load_pretrained_weights_exclude_classifier(new_model, config, freeze_base_model=False):
-    pretrained_model_path = pathutils.combine_path(pathutils.get_output_dir_path(), f"{config.model_to_load_raw_weights}.pth")
+    pretrained_model_path = pathutils.combine_path(pathutils.get_output_dir_path(config), f"{config.model_to_load_raw_weights}.pth")
     path = str(pretrained_model_path)
     # Load the state dictionary of the pretrained model
     pretrained_state_dict = torch.load(path)

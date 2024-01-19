@@ -21,7 +21,7 @@ def train_model(config):
     train_loader, valid_loader, test_loader = datasetutils.get_train_valid_test_loaders(config=config)
 
     # Initialize the model trainer 
-    with ModelTrainer(device, valid_loader, test_loader, test_loader, config=config) as modelTrainer, ModelEvaluator.from_trainer(modelTrainer) as modelEvaluator:
+    with ModelTrainer(device, train_loader, valid_loader, test_loader, config=config) as modelTrainer, ModelEvaluator.from_trainer(modelTrainer) as modelEvaluator:
         # Start the training and validation
         try:
             for epoch in range(modelTrainer.start_epoch, modelTrainer.epochs):

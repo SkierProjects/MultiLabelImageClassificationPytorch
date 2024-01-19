@@ -119,12 +119,12 @@ def evaluate_model(this_config):
         modelEvaluator.tensorBoardWriter.add_hparams(hparams, final_metrics)
 
         test_f1s_per_class, _, _ =  modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average=None)
-        tagmappings = datasetutils.get_index_to_tag_mapping()
+        tagmappings = datasetutils.get_index_to_tag_mapping(this_config)
         for class_index in range(this_config.num_classes):
             modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Test', test_f1s_per_class[class_index], epochs)
 
         val_test_f1s_per_class, _, _ =  modelEvaluator.evaluate_predictions(valid_test_loader, validtest_predictions, validtest_correct_labels, epochs, threshold=0.5, average=None)
-        tagmappings = datasetutils.get_index_to_tag_mapping()
+        tagmappings = datasetutils.get_index_to_tag_mapping(this_config)
         for class_index in range(this_config.num_classes):
             modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Valid+Test', val_test_f1s_per_class[class_index], epochs)
 
@@ -155,7 +155,6 @@ def evaluate_model(this_config):
             # Log to TensorBoard
             modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Score_By_Confidence_Category/Category_{category}', f1_scores_by_category[-1] if category_f1 else 0, epochs)
             modelEvaluator.tensorBoardWriter.add_scalar(f'Samples_By_Confidence_Category/Category_{category}', samples_by_category[-1] if category_f1 else 0, epochs)
-        print(f"Debug: {np.sum(samples_by_category)}, {test_num_images}")
         assert np.sum(samples_by_category) == test_num_images
 
 def get_model_evaluator(config, device):

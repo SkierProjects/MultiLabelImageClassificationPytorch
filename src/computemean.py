@@ -1,8 +1,4 @@
 import imclaslib.files.pathutils as pathutils
-
-# Set up system path for relative imports
-pathutils.setup_sys_path()
-
 import imclaslib.dataset.datasetutils as datasetutils
 import torch
 from imclaslib.logging.loggerfactory import LoggerFactory
@@ -11,7 +7,7 @@ from imclaslib.config import Config
 config = Config("default_config.yml")
 # Set up logging for the training process
 logger = LoggerFactory.setup_logging("logger", config, log_file=pathutils.combine_path(
-    pathutils.get_log_dir_path(), 
+    pathutils.get_log_dir_path(config), 
     f"CalculateDatasetMeanStd",
     f"{pathutils.get_datetime()}.log"))
 

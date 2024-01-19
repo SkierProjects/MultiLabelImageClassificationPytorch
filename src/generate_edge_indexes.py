@@ -1,9 +1,7 @@
 import csv
 import torch
+from imclaslib.config import Config
 import imclaslib.files.pathutils as pathutils
-# Set up system path for relative imports
-pathutils.setup_sys_path()
-
 import imclaslib.dataset.datasetutils as datasetutils
 # Define edge weights for different types of edges
 EDGE_WEIGHTS_DICT = {
@@ -13,10 +11,10 @@ EDGE_WEIGHTS_DICT = {
     'Parent': 1.0,
     'Somewhat Mutually Exclusive': -0.5,
 }
-
+config = Config("default_config.yml")
 # Function to read the CSV and generate edge indexes and edge weights
 def generate_graph_edges(csv_filename):
-    label_id_dict = datasetutils.get_tag_to_index_mapping()
+    label_id_dict = datasetutils.get_tag_to_index_mapping(config)
     # Create a mapping from label IDs to numerical indices
     label_indices = {label_id: idx for idx, label_id in enumerate(label_id_dict.values())}
     
@@ -57,7 +55,7 @@ def generate_graph_edges(csv_filename):
     return edge_index, edge_weights
 
 # Replace 'graph_commons.csv' with the actual path to your CSV file
-edge_index, edge_weights = generate_graph_edges(pathutils.combine_path(pathutils.get_root_path(), "Dataset", "graph_commons.csv"))
+edge_index, edge_weights = generate_graph_edges(pathutils.get_graph_path(config))
 
 # Print the edge index and weights in the desired format
 print('edge_index =', edge_index)

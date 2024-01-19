@@ -14,7 +14,6 @@ import imclaslib.files.modelloadingutils as modelloadingutils
 import copy
 import random
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
-final_model_path_template = pathutils.combine_path(pathutils.get_output_dir_path(), '{model_name}_{image_size}_{f1_score:.4f}.pth')
 
 class ModelTrainer():
     def __init__(self, device, trainloader, validloader, testloader, config):
@@ -221,7 +220,7 @@ class ModelTrainer():
             self.best_f1_score = self.last_valid_f1
             self.__set_best_model_state(self.current_epoch)
 
-            modelloadingutils.save_best_model(self.best_model_state)
+            modelloadingutils.save_best_model(self.best_model_state, self.config)
 
             # Check for significant improvement since the last reset of the patience counter
         if self.last_valid_f1 - self.best_f1_score_at_last_reset >= improvement_threshold:
