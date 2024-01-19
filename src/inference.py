@@ -30,7 +30,7 @@ def main(args):
         image_paths = [os.path.join(input_path, img) for img in os.listdir(input_path)
                             if img.lower().endswith(('.png', '.jpg', '.jpeg'))]
         image_dataset = ImageDatasetPredict(image_paths, config=config)
-        dataset_loader = DataLoader(image_dataset, batch_size=config.batch_size, shuffle=False)
+        dataset_loader = DataLoader(image_dataset, batch_size=config.test_batch_size, shuffle=False)
         predictionResults = modelEvaluator.predict(dataset_loader, False, 0.5)
         predictions = predictionResults['predictions']
         image_paths = predictionResults['image_paths']
@@ -54,7 +54,7 @@ def main(args):
         elif str(input_path).lower().endswith(('.mp4', '.avi', '.mov')):
             input_path = str(input_path)
             video_dataset = VideoDatasetPredict(input_path, args.time_interval, config=config)
-            dataset_loader = DataLoader(video_dataset, batch_size=config.batch_size, shuffle=False)
+            dataset_loader = DataLoader(video_dataset, batch_size=config.test_batch_size, shuffle=False)
             predictionResults = modelEvaluator.predict(dataset_loader, False, 0.5)
             predictions = predictionResults['predictions']
             frame_counts = predictionResults['frame_counts']

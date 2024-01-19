@@ -33,25 +33,25 @@ class ModelTrainer():
         self.validloader = validloader
         self.testloader = testloader
         self.model = modelfactory.create_model(self.config).to(device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.learning_rate)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.train_learning_rate)
 
         # Compute label frequencies and create weights for the loss function
         #self.label_freqs = self.compute_label_frequencies()
         #self.pos_weight = self.compute_loss_weights(self.label_freqs).to(device)
         self.criterion = nn.BCEWithLogitsLoss()#pos_weight=self.pos_weight)
-        self.epochs = self.config.num_epochs
+        self.epochs = self.config.train_num_epochs
         self.lr_scheduler = modelutils.get_learningRate_scheduler(self.optimizer, config)
         self.last_train_loss = 10000
         self.last_valid_loss = 10000
         self.last_valid_f1 = 0
-        self.current_lr = self.config.learning_rate
+        self.current_lr = self.config.train_learning_rate
         # Initialize TensorBoard writer
         self.tensorBoardWriter = TensorBoardWriter(config)
 
         modelToLoadPath = pathutils.get_model_to_load_path(self.config)
-        if self.config.continue_training and os.path.exists(modelToLoadPath):
+        if self.config.train_continue_training and os.path.exists(modelToLoadPath):
             logger.info("Loading the best model...")    
-            if self.config.embedding_layer_enabled or self.config.gcn_enabled and self.config.model_to_load_raw_weights != "":
+            if self.config.model_embedding_layer_enabled or self.config.model_gcn_enabled and self.config.train_model_to_load_raw_weights != "":
                 self.model, modelData = modelloadingutils.load_pretrained_weights_exclude_classifier(self.model, self.config, True)
             else:
                 modelData = modelloadingutils.load_model(modelToLoadPath, self.config)
@@ -71,7 +71,7 @@ class ModelTrainer():
         self.current_epoch = self.start_epoch - 1
         self.best_f1_score_at_last_reset = 0
         self.patience_counter = 0
-        self.patience = self.config.early_stopping_patience
+        self.patience = self.config.train_early_stopping_patience
     
     def __enter__(self):
         """
@@ -112,7 +112,7 @@ class ModelTrainer():
             images, targets = data['image'].to(self.device), data['label'].to(self.device).float()
             self.optimizer.zero_grad()
 
-            if (self.config.embedding_layer_enabled or self.config.gcn_enabled):
+            if (self.config.model_embedding_layer_enabled or self.config.model_gcn_enabled):
                 label_dropout_rate = 0.9
                 use_labels = random.random() > label_dropout_rate
                 if use_labels:
@@ -198,7 +198,7 @@ class ModelTrainer():
         Log the gradients of model parameters to TensorBoard.
         This is done periodically based on the current epoch to monitor training progress and diagnose issues.
         """
-        if self.current_epoch % 5 == 0:  # Choose an interval that makes sense for your training regimen.
+        if self.current_epoch % self.config.train_store_gradients_epoch_interval == 0:  # Choose an interval that makes sense for your training regimen.
             for name, param in self.model.named_parameters():
                 self.tensorBoardWriter.add_histogram(f'Parameters/{name}', param, self.current_epoch)
                 if param.grad is not None:
@@ -213,7 +213,7 @@ class ModelTrainer():
         Returns:
             bool: True if early stopping is triggered, False otherwise.
         """
-        improvement_threshold = self.config.early_stopping_threshold
+        improvement_threshold = self.config.train_early_stopping_threshold
         significant_improvement = False
         if self.last_valid_f1 > self.best_f1_score:
             logger.info(f"Validation F1 Score improved from {self.best_f1_score:.4f} to {self.last_valid_f1:.4f}")
@@ -257,7 +257,7 @@ class ModelTrainer():
         """
         # Initialize a tensor to hold the frequency of each label.
         # This assumes that the number of labels is known and stored in `self.config.num_classes`.
-        label_freqs = torch.zeros(self.config.num_classes, dtype=torch.float)
+        label_freqs = torch.zeros(self.config.model_num_classes, dtype=torch.float)
 
         # Iterate over the dataset and sum the one-hot encoded labels.
         for batch in tqdm(self.trainloader, total=len(self.trainloader)):
@@ -297,19 +297,19 @@ class ModelTrainer():
             'loss': self.criterion,
             'f1_score': self.best_f1_score,
             'model_name': self.config.model_name,
-            'requires_grad': self.config.model_requires_grad,
-            'num_classes': self.config.num_classes,
-            'dropout': self.config.model_dropout_prob,
-            'embedding_layer': self.config.embedding_layer_enabled,
-            'gcn_enabled': self.config.gcn_enabled,
-            'batch_size': self.config.batch_size,
+            'requires_grad': self.config.train_requires_grad,
+            'model_num_classes': self.config.model_num_classes,
+            'dropout': self.config.train_dropout_prob,
+            'embedding_layer': self.config.model_embedding_layer_enabled,
+            'model_gcn_enabled': self.config.model_gcn_enabled,
+            'train_batch_size': self.config.train_batch_size,
             'optimizer': 'Adam',
             'loss_function': 'BCEWithLogitsLoss',
             'image_size':  self.config.model_image_size,
-            'gcn_model_name': self.config.gcn_model_name,
-            'gcn_out_channels': self.config.gcn_out_channels,
-            'gcn_layers': self.config.gcn_layers,
-            'attention_layer_num_heads': self.config.attention_layer_num_heads,
-            'embedding_layer_dimension': self.config.embedding_layer_dimension,
+            'model_gcn_model_name': self.config.model_gcn_model_name,
+            'model_gcn_out_channels': self.config.model_gcn_out_channels,
+            'model_gcn_layers': self.config.model_gcn_layers,
+            'model_attention_layer_num_heads': self.config.model_attention_layer_num_heads,
+            'model_embedding_layer_dimension': self.config.model_embedding_layer_dimension,
             'train_loss': self.last_train_loss
         }

@@ -5,12 +5,13 @@ from imclaslib.files import modelloadingutils
 import imclaslib.models.modelfactory as modelfactory
 
 class EnsembleClassifier(nn.Module):
-    def __init__(self, config, mode='einsum'):
+    def __init__(self, config):
         super().__init__()
+        mode = config.model_ensemble_combiner
         self.mode = mode
         # We need to use ModuleList so that the models are properly registered as submodules of the ensemble
         self.models = nn.ModuleList()
-        for modelconfig in config.ensemble_model_configs:
+        for modelconfig in config.model_ensemble_model_configs:
             modelloadingutils.update_config_from_model_file(modelconfig)
             model = modelfactory.create_model(modelconfig)
             modelToLoadPath = pathutils.get_model_to_load_path(modelconfig)
@@ -20,8 +21,8 @@ class EnsembleClassifier(nn.Module):
                 param.requires_grad = False  # Freeze the model parameters
             self.models.append(model)
         
-        num_models = len(config.ensemble_model_configs)
-        num_classes = config.num_classes
+        num_models = len(config.model_ensemble_model_configs)
+        num_classes = config.model_num_classes
 
         if mode == 'einsum':
             self.meta_weights = nn.Parameter(torch.ones(num_models, num_classes))

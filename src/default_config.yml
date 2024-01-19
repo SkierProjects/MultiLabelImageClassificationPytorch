@@ -2,43 +2,36 @@ model:
     name: 'efficientnet_v2_m'
     image_size: 400
     num_classes: 31
-    dropout_prob: 0
     weights: 'DEFAULT'
-batch_size: 24
-learning_rate: 1.0e-4
-num_epochs: 50
-continue_training: false
-model_name_to_load: ''
-early_stopping_patience: 6
-early_stopping_threshold: 4.0e-3
-learningrate_reducer_patience: 2
-learningrate_reducer_threshold: 2.0e-3
-learningrate_reducer_factor: 0.1
-learningrate_reducer_min_lr: 1.0e-7
-augmentation_level: 0
-embedding_layer_enabled: false
-embedding_layer_dimension: 512
-gcn_enabled: false
-gcn_model_name: 'GAT'
-gcn_out_channels: 512
-gcn_layers: 4
-attention_layer_num_heads: 8
-gcn_edge_index:
-  - [18, 19, 13, 19, 26, 19,  2,  3, 14, 19,  1, 19, 29, 19,  8, 19, 17, 26,
+    folder: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\outputs' #specify your path here
+    tags_path: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\tags.txt' #specify your path here
+    name_to_load: 'best_model'
+    attention_layer_num_heads: 8
+    embedding_layer:
+        enabled: false
+        dimension: 512
+    gcn:
+        enabled: false
+        model_name: 'GAT'
+        out_channels: 512
+        layers: 4
+        graph_path: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\Dataset\graph_commons.csv' #specify your path here
+        edge_index: 
+          - [18, 19, 13, 19, 26, 19,  2,  3, 14, 19,  1, 19, 29, 19,  8, 19, 17, 26,
                 21, 19,  6, 19,  2, 19,  2,  1, 15, 19,  5, 19,  7, 19,  2, 21, 25, 19,
                 25,  8, 16, 19, 10, 14,  8,  6, 15,  8, 14,  8, 22, 23,  6, 14,  8, 13,
                 16,  0,  8, 16,  8,  5,  7, 18,  5, 15, 23, 28,  2,  0, 11, 19, 14,  1,
                 5, 16, 14, 29, 17, 19, 23, 11,  6,  7, 22,  0, 22, 19, 30, 19, 28, 19,
                 22, 30,  5,  0, 21,  0, 28, 28, 28, 10, 19, 16,  9,  5, 24, 21, 24, 30,
                 28, 21, 18,  0, 19, 11,  3,  3,  3,  5]
-  - [19, 18, 19, 13, 19, 26,  3,  2, 19, 14, 19,  1, 19, 29, 19,  8, 26, 17,
+          - [19, 18, 19, 13, 19, 26,  3,  2, 19, 14, 19,  1, 19, 29, 19,  8, 26, 17,
                 19, 21, 19,  6, 19,  2,  1,  2, 19, 15, 19,  5, 19,  7, 21,  2, 19, 25,
                 8, 25, 19, 16, 14, 10,  6,  8,  8, 15,  8, 14, 23, 22, 14,  6, 13,  8,
                 0, 16, 16,  8,  5,  8, 18,  7, 15,  5, 28, 23,  0,  2, 19, 11,  1, 14,
                 16,  5, 29, 14, 19, 17, 11, 23,  7,  6,  0, 22, 19, 22, 19, 30, 19, 28,
                 30, 22,  0,  5,  0, 21, 11, 10, 29, 19, 10,  9, 16, 24,  5, 24, 21, 28,
                 30, 18, 21, 19,  0, 12,  1, 11, 10,  9]
-gcn_edge_weights: [ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,
+        edge_weights: [ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,
             1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,
             1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,
             1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,
@@ -53,23 +46,38 @@ gcn_edge_weights: [ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000
             1.0000,  1.0000,  1.0000, -0.5000, -0.5000, -0.5000, -0.5000, -0.5000,
             -0.5000, -0.5000, -0.5000, -0.5000, -0.5000, -0.5000, -0.5000, -0.5000,
             -0.5000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000]
-log_level: 'DEBUG'
-dataset_file_name: 'dataset.csv'
-model_to_load_raw_weights: ''
-model_to_load_raw_weights: ''
-store_gradients_epoch_interval: 5
-check_test_loss_epoch_interval: 10
-dataset_normalization_mean: [0.4805, 0.3967, 0.3589]
-dataset_normalization_std: [0.3207, 0.2930, 0.2824]
-train_percentage: 80
-valid_percentage: 10
-test_percentage: 10
-paths:
-    output_folder: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\outputs' #specify your path here
-    log_folder: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\logs' #specify your path here
-    tensorboard_log_folder: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\tensorboard_logs' #specify your path here
-    dataset: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\Dataset\dataset.csv' #specify your path here
-    train_many_models: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\src\train_many_models.json' #specify your path here
-    test_many_models: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\src\test_many_models.json' #specify your path here
-    tags: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\tags.txt' #specify your path here
-    graph: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\Dataset\graph_commons.csv' #specify your path here
+dataset: 
+    path: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\Dataset\dataset.csv' #specify your path here
+    augmentation_level: 0
+    normalization_mean: [0.4805, 0.3967, 0.3589]
+    normalization_std: [0.3207, 0.2930, 0.2824]
+    train_percentage: 80
+    valid_percentage: 10
+    test_percentage: 10
+train:
+    batch_size: 24
+    dropout_prob: 0
+    learning_rate: 1.0e-4
+    num_epochs: 50
+    continue_training: false #if this is set then make sure best_model is the same model type or set another value for model_name_to_load
+    requires_grad: true
+    store_gradients_epoch_interval: 5
+    check_test_loss_epoch_interval: 10
+    many_models_path: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\src\train_many_models.yml' #specify your path here
+    model_to_load_raw_weights: ''
+    early_stopping:
+        patience: 6
+        threshold: 4.0e-3
+    learningrate_reducer:
+        patience: 2
+        threshold: 2.0e-3
+        factor: 0.1
+        min_lr: 1.0e-7
+test:
+    batch_size: 72
+    many_models_path: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\src\test_many_models.yml' #specify your path here
+    
+logs: 
+    level: 'DEBUG'
+    folder: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\logs' #specify your path here
+    tensorboard_folder: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\tensorboard_logs' #specify your path here

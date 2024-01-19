@@ -25,9 +25,9 @@ def save_final_model(model_state, f1_score, config):
         config (object): Configuration object containing model_name and image_size.
     """
     modelAddons = ""
-    if config.embedding_layer_enabled:
+    if config.model_embedding_layer_enabled:
         modelAddons = "_EmbeddingLayer"
-    elif config.gcn_enabled:
+    elif config.model_gcn_enabled:
         modelAddons = "_GCN"
     final_model_path_template = os.path.join(str(pathutils.get_output_dir_path(config)), '{model_name}_{image_size}_{f1_score:.4f}{modelAddons}.pth')
     final_model_path = final_model_path_template.format(
@@ -64,19 +64,19 @@ def add_model_data(checkpoint, config):
     model_data["f1_score"] = checkpoint.get('f1_score', -1)
     model_data["model_name"] = checkpoint.get('model_name', config.model_name)
     model_data["requires_grad"] = checkpoint.get('requires_grad', True)
-    model_data["num_classes"] = checkpoint.get('num_classes', config.num_classes)
+    model_data["model_num_classes"] = checkpoint.get('model_num_classes', config.model_num_classes)
     model_data["dropout"] = checkpoint.get('dropout', 0)
-    model_data["embedding_layer"] = checkpoint.get('embedding_layer', config.embedding_layer_enabled)
-    model_data["gcn_enabled"] = checkpoint.get('gcn_enabled', config.gcn_enabled)
-    model_data["batch_size"] = checkpoint.get('batch_size', config.batch_size)
+    model_data["embedding_layer"] = checkpoint.get('embedding_layer', config.model_embedding_layer_enabled)
+    model_data["model_gcn_enabled"] = checkpoint.get('model_gcn_enabled', config.model_gcn_enabled)
+    model_data["train_batch_size"] = checkpoint.get('train_batch_size', config.train_batch_size)
     model_data["optimizer"] = checkpoint.get('optimizer', 'Adam')
     model_data["loss_function"] = checkpoint.get('loss_function', 'BCEWithLogitsLoss')
     model_data["image_size"] = checkpoint.get('image_size', config.model_image_size)
-    model_data["gcn_model_name"] = checkpoint.get('gcn_model_name', config.gcn_model_name)
-    model_data["gcn_out_channels"] = checkpoint.get('gcn_out_channels', config.gcn_out_channels)
-    model_data["gcn_layers"] = checkpoint.get('gcn_layers', config.gcn_layers)
-    model_data["attention_layer_num_heads"] = checkpoint.get('attention_layer_num_heads', config.attention_layer_num_heads)
-    model_data["embedding_layer_dimension"] = checkpoint.get('embedding_layer_dimension', config.embedding_layer_dimension)
+    model_data["model_gcn_model_name"] = checkpoint.get('model_gcn_model_name', config.model_gcn_model_name)
+    model_data["model_gcn_out_channels"] = checkpoint.get('model_gcn_out_channels', config.model_gcn_out_channels)
+    model_data["model_gcn_layers"] = checkpoint.get('model_gcn_layers', config.model_gcn_layers)
+    model_data["model_attention_layer_num_heads"] = checkpoint.get('model_attention_layer_num_heads', config.model_attention_layer_num_heads)
+    model_data["model_embedding_layer_dimension"] = checkpoint.get('model_embedding_layer_dimension', config.model_embedding_layer_dimension)
     model_data["train_loss"] = checkpoint.get('train_loss', 0)
 
     
@@ -107,7 +107,7 @@ def update_config_from_model_file(config):
         return
     
 def load_pretrained_weights_exclude_classifier(new_model, config, freeze_base_model=False):
-    pretrained_model_path = pathutils.combine_path(pathutils.get_output_dir_path(config), f"{config.model_to_load_raw_weights}.pth")
+    pretrained_model_path = pathutils.combine_path(pathutils.get_output_dir_path(config), f"{config.train_model_to_load_raw_weights}.pth")
     path = str(pretrained_model_path)
     # Load the state dictionary of the pretrained model
     pretrained_state_dict = torch.load(path)

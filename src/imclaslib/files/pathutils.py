@@ -30,7 +30,7 @@ def get_log_dir_path(config):
     Returns:
         Path: The log directory path.
     """
-    return Path(config.paths_log_folder)
+    return Path(config.logs_folder)
 
 
 def get_tensorboard_log_dir_path(config):
@@ -40,7 +40,7 @@ def get_tensorboard_log_dir_path(config):
     Returns:
         Path: The TensorBoard log directory path.
     """
-    return Path(config.paths_tensorboard_log_folder)
+    return Path(config.logs_tensorboard_folder)
 
 def get_output_dir_path(config):
     """
@@ -49,7 +49,7 @@ def get_output_dir_path(config):
     Returns:
         Path: The output directory path.
     """
-    return Path(config.paths_output_folder)
+    return Path(config.model_folder)
 
 def combine_path(*args):
     """
@@ -82,7 +82,7 @@ def get_dataset_path(config):
     Returns:
         Path: The dataset file path.
     """
-    return Path(config.paths_dataset)
+    return Path(config.dataset_path)
 
 def get_train_many_models_file(config):
     """
@@ -91,7 +91,7 @@ def get_train_many_models_file(config):
     Returns:
         Path: The path to the 'train_many_models.json' file.
     """
-    return Path(config.paths_train_many_models)
+    return Path(config.train_many_models_path)
 
 def get_test_many_models_file(config):
     """
@@ -100,7 +100,7 @@ def get_test_many_models_file(config):
     Returns:
         Path: The path to the 'train_many_models.json' file.
     """
-    return Path(config.paths_test_many_models)
+    return Path(config.test_many_models_path)
 
 def get_tags_path(config):
     """
@@ -109,7 +109,7 @@ def get_tags_path(config):
     Returns:
         Path: The path to the 'tags.text' file.
     """
-    return Path(config.paths_tags)
+    return Path(config.model_tags_path)
 
 def get_graph_path(config):
-    return Path(config.paths_graph)
+    return Path(config.model_gcn_graph_path)

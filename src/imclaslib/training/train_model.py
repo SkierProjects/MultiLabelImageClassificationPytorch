@@ -42,7 +42,7 @@ def train_model(config):
                 modelTrainer.log_gradients()
                 
                 # Evaluate test results at specified intervals
-                if epoch % config.check_test_loss_epoch_interval == 0 and epoch != 0:
+                if epoch % config.train_check_test_loss_epoch_interval == 0 and epoch != 0:
                     logger.info("Evaluating Test Results")
                     test_loss, test_f1, precision, recall = modelEvaluator.evaluate(test_loader, epoch, "Test", "Train")
                     logger.info(f'Test Loss: {test_loss:.4f}')

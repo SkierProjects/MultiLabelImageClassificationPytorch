@@ -25,7 +25,7 @@ class LoggerFactory:
             logging.Logger: Configured logger instance.
         """
         if level is None:
-            level = getattr(logging, config.log_level, LoggerFactory.DEFAULT_LOG_LEVEL)
+            level = getattr(logging, config.logs_level, LoggerFactory.DEFAULT_LOG_LEVEL)
         
         # Since we are setting up handlers individually, we don't use basicConfig
         logger = logging.getLogger(loggername)

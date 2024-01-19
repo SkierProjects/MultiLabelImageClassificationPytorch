@@ -14,13 +14,13 @@ class TensorBoardWriter():
         self.config = config
 
         modelAddons = ""
-        if self.config.embedding_layer_enabled:
-            modelAddons = f"_EmbeddingLayer_{config.embedding_layer_dimension}"
-        elif self.config.gcn_enabled:
-            modelAddons = f"_GCN_{config.embedding_layer_dimension}_{config.gcn_out_channels}_{config.gcn_layers}_{config.attention_layer_num_heads}"
+        if self.config.model_embedding_layer_enabled:
+            modelAddons = f"_EmbeddingLayer_{config.model_embedding_layer_dimension}"
+        elif self.config.model_gcn_enabled:
+            modelAddons = f"_GCN_{config.model_embedding_layer_dimension}_{config.model_gcn_out_channels}_{config.model_gcn_layers}_{config.model_attention_layer_num_heads}"
         log_dir = pathutils.combine_path(
             pathutils.get_tensorboard_log_dir_path(config),
-            f'{config.model_name}_{config.model_weights}_{config.model_image_size}_{config.model_dropout_prob}{modelAddons}'
+            f'{config.model_name}_{config.model_weights}_{config.model_image_size}_{config.train_dropout_prob}{modelAddons}'
         )
         self.writer = SummaryWriter(log_dir)
 
@@ -63,8 +63,8 @@ class TensorBoardWriter():
         overlaid_images = imageutils.overlay_predictions_batch(pil_images, predictions.cpu().tolist(), datasetutils.get_index_to_tag_mapping(self.config), true_labels.cpu().tolist())
         tensor_overlaid_images = imageutils.convert_PIL_to_tensors(overlaid_images)
         self.add_images(f'{runmode}/{dataSubset}/Images', denormalized_images, step)
-        self.add_images(f'{runmode}/{dataSubset}/True Labels', imageutils.convert_labels_to_color(true_labels.cpu(), self.config.num_classes), step)
-        self.add_images(f'{runmode}/{dataSubset}/Predictions', imageutils.convert_labels_to_color(predictions.cpu(), self.config.num_classes), step)
+        self.add_images(f'{runmode}/{dataSubset}/True Labels', imageutils.convert_labels_to_color(true_labels.cpu(), self.config.model_num_classes), step)
+        self.add_images(f'{runmode}/{dataSubset}/Predictions', imageutils.convert_labels_to_color(predictions.cpu(), self.config.model_num_classes), step)
         self.add_images(f'{runmode}/{dataSubset}/OverlayPredictions', tensor_overlaid_images, step)
 
     def add_histogram(self, tag, param, step):

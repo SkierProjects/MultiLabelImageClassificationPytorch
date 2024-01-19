@@ -33,9 +33,9 @@ class ImageDataset(Dataset):
         self.all_labels = np.array(self.csv.drop(['filepath'], axis=1))
         self.image_size = self.config.model_image_size
         self.csv['identifier'] = self.csv['filepath'].apply(lambda x: x.split('/')[-1])
-        train_size = config.train_percentage
-        valid_size = config.valid_percentage
-        test_size = config.test_percentage
+        train_size = config.dataset_train_percentage
+        valid_size = config.dataset_valid_percentage
+        test_size = config.dataset_test_percentage
         total_size = train_size + valid_size + test_size
         if total_size > 100:
             raise ValueError("The sum of train, valid, and test percentages should be <= 100.")
@@ -89,7 +89,7 @@ class ImageDataset(Dataset):
         return min_val + (max_val - min_val) * level / 10
 
     def train_transforms(self):
-        augmentation_level = self.config.augmentation_level
+        augmentation_level = self.config.dataset_augmentation_level
         assert 0 <= augmentation_level <= 10, "Augmentation level must be between 0 and 10"
 
         # Define the augmentation parameters scaled by the augmentation_level

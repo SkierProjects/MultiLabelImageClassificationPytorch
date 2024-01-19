@@ -120,12 +120,12 @@ def evaluate_model(this_config):
 
         test_f1s_per_class, _, _ =  modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average=None)
         tagmappings = datasetutils.get_index_to_tag_mapping(this_config)
-        for class_index in range(this_config.num_classes):
+        for class_index in range(this_config.model_num_classes):
             modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Test', test_f1s_per_class[class_index], epochs)
 
         val_test_f1s_per_class, _, _ =  modelEvaluator.evaluate_predictions(valid_test_loader, validtest_predictions, validtest_correct_labels, epochs, threshold=0.5, average=None)
         tagmappings = datasetutils.get_index_to_tag_mapping(this_config)
-        for class_index in range(this_config.num_classes):
+        for class_index in range(this_config.model_num_classes):
             modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Valid+Test', val_test_f1s_per_class[class_index], epochs)
 
         # Prepare to store results by category
@@ -158,7 +158,7 @@ def evaluate_model(this_config):
         assert np.sum(samples_by_category) == test_num_images
 
 def get_model_evaluator(config, device):
-    if config.ensemble_model_configs:
+    if config.model_ensemble_model_configs:
         return ModelEvaluator.from_ensemble(device, config, TensorBoardWriter(config=config))
     else:
         return ModelEvaluator.from_file(device, config, TensorBoardWriter(config=config))

@@ -22,9 +22,9 @@ def get_train_valid_test_loaders(config):
     valid_data = ImageDataset(dataset_csv, mode='valid', config=config)
     test_data = ImageDataset(dataset_csv, mode='test', config=config)
 
-    train_loader = DataLoader(train_data, batch_size=config.batch_size, shuffle=True)
-    valid_loader = DataLoader(valid_data, batch_size=config.batch_size, shuffle=False)
-    test_loader = DataLoader(test_data, batch_size=config.batch_size, shuffle=False)
+    train_loader = DataLoader(train_data, batch_size=config.train_batch_size, shuffle=True)
+    valid_loader = DataLoader(valid_data, batch_size=config.train_batch_size, shuffle=False)
+    test_loader = DataLoader(test_data, batch_size=config.train_batch_size, shuffle=False)
 
     return train_loader, valid_loader, test_loader
 
@@ -43,7 +43,7 @@ def get_data_loader_by_name(mode, config, shuffle=False):
     global dataset_csv
     dataset_csv = __get_dataset_csv(config)
     data = ImageDataset(dataset_csv, mode=mode, config=config)
-    loader = DataLoader(data, batch_size=config.batch_size, shuffle=shuffle)
+    loader = DataLoader(data, batch_size=config.train_batch_size, shuffle=shuffle)
     return loader
 
 def get_dataset_tag_mappings(config):

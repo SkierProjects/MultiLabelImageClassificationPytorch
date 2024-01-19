@@ -21,7 +21,7 @@ def main(json_file_path):
     """
     configs = Config.load_configs_from_file(json_file_path, config)
     for config_instance in configs:
-        logger.info(f"Starting training for model: {config_instance.model_name}, image size: {config_instance.model_image_size}, dropout: {config_instance.model_dropout_prob}, weights: {config_instance.model_weights}")
+        logger.info(f"Starting training for model: {config_instance.model_name}, image size: {config_instance.model_image_size}, dropout: {config_instance.train_dropout_prob}, weights: {config_instance.model_weights}")
         train_model(config_instance)
 
 if __name__ == '__main__':

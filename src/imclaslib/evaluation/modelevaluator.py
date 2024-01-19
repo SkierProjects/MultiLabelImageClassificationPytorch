@@ -33,7 +33,7 @@ class ModelEvaluator:
         self.config = config
         self.criterion = criterion
         self.device = device
-        self.num_classes = config.num_classes
+        self.num_classes = config.model_num_classes
         self.tensorBoardWriter = tensorBoardWriter
         self.model_data = model_data
 

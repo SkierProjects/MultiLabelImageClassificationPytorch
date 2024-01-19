@@ -13,4 +13,4 @@ def get_learningRate_scheduler(optimizer, config):
     Returns:
         torch.optim.lr_scheduler.ReduceLROnPlateau: The learning rate reducer
     """
-    return ReduceLROnPlateau(optimizer, mode='min', factor=config.learningrate_reducer_factor, patience=config.learningrate_reducer_patience, threshold=config.learningrate_reducer_threshold, verbose=True, min_lr=config.learningrate_reducer_min_lr)
+    return ReduceLROnPlateau(optimizer, mode='min', factor=config.train_learningrate_reducer_factor, patience=config.train_learningrate_reducer_patience, threshold=config.train_learningrate_reducer_threshold, verbose=True, min_lr=config.train_learningrate_reducer_min_lr)

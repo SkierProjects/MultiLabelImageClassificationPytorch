@@ -5,13 +5,13 @@ import torch
 from imclaslib.models.model_layers import Attention, MultiHeadAttention
 
 class GCNClassifier(nn.Module):
-    def __init__(self, base_model, num_classes, gcn_model_name, dropout_prob, gcn_model_params, edge_index, edge_weight=None, use_multihead_attention=True, num_heads=4):
+    def __init__(self, base_model, num_classes, model_gcn_model_name, dropout_prob, gcn_model_params, edge_index, edge_weight=None, use_multihead_attention=True, num_heads=4):
         super().__init__()
         self.base_model = base_model
         self.num_classes = num_classes
         
         # Instantiate the pre-made GCN model from PyTorch Geometric
-        self.gcn = getattr(GCN, gcn_model_name)(**gcn_model_params)
+        self.gcn = getattr(GCN, model_gcn_model_name)(**gcn_model_params)
 
         # Store the graph structure
         self.edge_index = edge_index
