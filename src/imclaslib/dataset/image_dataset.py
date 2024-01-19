@@ -5,8 +5,7 @@ import numpy as np
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
-from src.config import config
-from src.utils.logging.loggerfactory import LoggerFactory
+from imclaslib.logging.loggerfactory import LoggerFactory
 import pandas as pd
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
@@ -15,7 +14,7 @@ class ImageDataset(Dataset):
     A dataset class for loading and transforming images for model training and evaluation.
     """
 
-    def __init__(self, csv, mode, random_state=42, config=config): 
+    def __init__(self, csv, mode, config, random_state=42): 
         """
         Initializes the dataset with images and labels based on the provided CSV file and mode.
         
@@ -33,7 +32,7 @@ class ImageDataset(Dataset):
         self.mode = mode
         self.all_image_names = self.csv[:]['filepath']
         self.all_labels = np.array(self.csv.drop(['filepath'], axis=1))
-        self.image_size = self.config.image_size
+        self.image_size = self.config.model_image_size
         self.csv['identifier'] = self.csv['filepath'].apply(lambda x: x.split('/')[-1])
         train_size = config.train_percentage
         valid_size = config.valid_percentage

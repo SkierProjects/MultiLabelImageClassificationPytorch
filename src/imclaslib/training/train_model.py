@@ -1,14 +1,13 @@
-from config import config
-from src.utils.logging.loggerfactory import LoggerFactory
+from imclaslib.logging.loggerfactory import LoggerFactory
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 import torch
-import utils.dataset.datasetutils as datasetutils
-from src.utils.training.modeltrainer import ModelTrainer
-from src.utils.evaluation.modelevaluator import ModelEvaluator
-from src.utils.evaluation.test_model import evaluate_model
+import imclaslib.dataset.datasetutils as datasetutils
+from imclaslib.training.modeltrainer import ModelTrainer
+from imclaslib.evaluation.modelevaluator import ModelEvaluator
+from imclaslib.evaluation.test_model import evaluate_model
 
-def train_model(config=config):
+def train_model(config):
     """
     Train a model based on the provided configuration.
 
@@ -22,7 +21,7 @@ def train_model(config=config):
     train_loader, valid_loader, test_loader = datasetutils.get_train_valid_test_loaders(config=config)
 
     # Initialize the model trainer 
-    with ModelTrainer(device, train_loader, valid_loader, test_loader, config=config) as modelTrainer, ModelEvaluator.from_trainer(modelTrainer) as modelEvaluator:
+    with ModelTrainer(device, valid_loader, test_loader, test_loader, config=config) as modelTrainer, ModelEvaluator.from_trainer(modelTrainer) as modelEvaluator:
         # Start the training and validation
         try:
             for epoch in range(modelTrainer.start_epoch, modelTrainer.epochs):

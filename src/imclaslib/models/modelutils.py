@@ -1,9 +1,8 @@
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from src.utils.logging.loggerfactory import LoggerFactory
-from src.config import config
+from imclaslib.logging.loggerfactory import LoggerFactory
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
-def get_learningRate_scheduler(optimizer, config=config):
+def get_learningRate_scheduler(optimizer, config):
     """
     Creates a Learning Rate Scheduler to reduce learning rate during training
 

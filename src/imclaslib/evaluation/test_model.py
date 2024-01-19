@@ -1,15 +1,17 @@
-from config import config
-from utils.evaluation.modelevaluator import ModelEvaluator
-from utils.logging.loggerfactory import LoggerFactory
-from utils.tensorboard.tensorboardwriter import TensorBoardWriter
-from utils.metrics import metricutils
+from imclaslib.evaluation.modelevaluator import ModelEvaluator
+from imclaslib.logging.loggerfactory import LoggerFactory
+from imclaslib.tensorboard.tensorboardwriter import TensorBoardWriter
+from imclaslib.metrics import metricutils
 import torch
-import utils.dataset.datasetutils as datasetutils
+import imclaslib.dataset.datasetutils as datasetutils
 import time
+import numpy as np
+from scipy.special import expit
+
 # Set up logging for the training process
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
-def evaluate_model(this_config=config):
+def evaluate_model(this_config):
     # initialize the computation device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -37,6 +39,9 @@ def evaluate_model(this_config=config):
         valid_predictions, valid_correct_labels, valid_loss = valid_results['predictions'], valid_results['true_labels'], valid_results['avg_loss']
         test_predictions, test_correct_labels, test_loss = test_results['predictions'], test_results['true_labels'], test_results['avg_loss']
         validtest_predictions, validtest_correct_labels, validtest_loss = validtest_results['predictions'], validtest_results['true_labels'], validtest_results['avg_loss']
+        confidence_thresholds = (0.01, 0.2, 0.4, 0.7, 1.0)  # Adjust these thresholds to suit your needs
+        test_proabilities = expit(test_predictions)
+        test_confidence_categories = categorize_predictions(test_proabilities, confidence_thresholds)
 
         valid_elapsed_time = valid_end_time - valid_start_time
         test_elapsed_time = test_end_time - test_start_time
@@ -50,7 +55,7 @@ def evaluate_model(this_config=config):
         test_images_per_second = test_num_images / test_elapsed_time
         valid_test_images_per_second = valid_test_num_images / valid_test_elapsed_time
 
-        avg_images_per_second = (valid_images_per_second + test_images_per_second + valid_test_images_per_second) / 3
+        avg_images_per_second = (valid_num_images + test_num_images + valid_test_num_images) / (valid_elapsed_time + test_elapsed_time + valid_test_elapsed_time)
 
         logger.info(f"Validation Img/sec: {valid_images_per_second}")
         logger.info(f"Test Img/sec: {test_images_per_second}")
@@ -123,8 +128,64 @@ def evaluate_model(this_config=config):
         for class_index in range(this_config.num_classes):
             modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Valid+Test', val_test_f1s_per_class[class_index], epochs)
 
+        # Prepare to store results by category
+        f1_scores_by_category = []
+        samples_by_category = []
+        # Calculate F1 scores for each category
+        for category in range(len(confidence_thresholds)+1):
+            category_mask = (test_confidence_categories == category)
+            category_predictions = test_predictions[category_mask]
+            category_true_labels = test_correct_labels[category_mask]
+            
+            # Ensure there are samples in the category before calculating F1
+            if category_predictions.shape[0] > 0:
+                binary_predictions = (category_predictions > val_best_f1_threshold).astype(int)
+                category_f1 = metricutils.f1_score(category_true_labels, binary_predictions)
+
+                binary_predictions_default = (category_predictions > 0.5).astype(int)
+            else:
+                category_f1 = None
+
+            f1_scores_by_category.append(category_f1)
+            samples_by_category.append(np.sum(category_mask))
+
+            # Log results
+            logger.info(f"Confidence Category {category} - Images: {samples_by_category[-1]}, F1 Score: {f1_scores_by_category[-1]}")
+
+            # Log to TensorBoard
+            modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Score_By_Confidence_Category/Category_{category}', f1_scores_by_category[-1] if category_f1 else 0, epochs)
+            modelEvaluator.tensorBoardWriter.add_scalar(f'Samples_By_Confidence_Category/Category_{category}', samples_by_category[-1] if category_f1 else 0, epochs)
+        print(f"Debug: {np.sum(samples_by_category)}, {test_num_images}")
+        assert np.sum(samples_by_category) == test_num_images
+
 def get_model_evaluator(config, device):
     if config.ensemble_model_configs:
         return ModelEvaluator.from_ensemble(device, config, TensorBoardWriter(config=config))
     else:
         return ModelEvaluator.from_file(device, config, TensorBoardWriter(config=config))
+    
+def categorize_predictions(probabilities, thresholds, certainty_window=0.03):
+    """
+    Categorize images into confidence levels based on the distance from the decision boundary for each label.
+
+    Parameters:
+    - probabilities: numpy.ndarray, the predicted probabilities for each label of each image
+    - thresholds: tuple, containing the confidence thresholds for categorization
+
+    Returns:
+    - categories: numpy.ndarray, the categories for each image
+    """
+
+    cumulative_uncertainty = np.sum(np.where((probabilities > certainty_window) & (probabilities < (1-certainty_window)),
+                                             np.minimum(probabilities - 0.0, 1.0 - probabilities), 0), axis=1)
+    
+    # Calculate and print the mean and standard deviation of cumulative uncertainties for debugging
+    mean_uncertainty = np.mean(cumulative_uncertainty)
+    std_uncertainty = np.std(cumulative_uncertainty)
+    print("Mean cumulative uncertainty:", mean_uncertainty)
+    print("Standard deviation of cumulative uncertainty:", std_uncertainty)
+    
+    # Assign confidence categories based on image confidence levels
+    categories = np.digitize(cumulative_uncertainty, thresholds)
+    
+    return categories

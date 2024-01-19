@@ -1,6 +1,6 @@
 import torch
-from utils.logging.loggerfactory import LoggerFactory
-import utils.files.pathutils as pathutils
+from imclaslib.logging.loggerfactory import LoggerFactory
+import imclaslib.files.pathutils as pathutils
 import os
 import re
 
@@ -32,7 +32,7 @@ def save_final_model(model_state, f1_score, config):
     final_model_path_template = os.path.join(str(pathutils.get_output_dir_path()), '{model_name}_{image_size}_{f1_score:.4f}{modelAddons}.pth')
     final_model_path = final_model_path_template.format(
         model_name=config.model_name,
-        image_size=config.image_size,
+        image_size=config.model_image_size,
         f1_score=f1_score,
         modelAddons=modelAddons
     )
@@ -71,7 +71,7 @@ def add_model_data(checkpoint, config):
     model_data["batch_size"] = checkpoint.get('batch_size', config.batch_size)
     model_data["optimizer"] = checkpoint.get('optimizer', 'Adam')
     model_data["loss_function"] = checkpoint.get('loss_function', 'BCEWithLogitsLoss')
-    model_data["image_size"] = checkpoint.get('image_size', config.image_size)
+    model_data["image_size"] = checkpoint.get('image_size', config.model_image_size)
     model_data["gcn_model_name"] = checkpoint.get('gcn_model_name', config.gcn_model_name)
     model_data["gcn_out_channels"] = checkpoint.get('gcn_out_channels', config.gcn_out_channels)
     model_data["gcn_layers"] = checkpoint.get('gcn_layers', config.gcn_layers)
@@ -91,19 +91,19 @@ def update_config_from_model_file(config):
     if match:
         # If there's a match, get the model name and image size
         model_name = match.group(1)  # The first capture group (modelname)
-        image_size = match.group(2)  # The second capture group (image size)
+        model_image_size = match.group(2)  # The second capture group (image size)
         config.model_name = model_name
-        config.image_size = int(image_size)
+        config.model_image_size = int(model_image_size)
         return
     else:
         model_file_path = pathutils.get_model_to_load_path(config)
         checkpoint = torch.load(model_file_path)
         model_name = checkpoint.get('model_name', None)
-        image_size = checkpoint.get('image_size', None)
+        model_image_size = checkpoint.get('image_size', None)
         if model_name is not None:
             config.model_name = model_name
-        if image_size is not None:
-            config.image_size = image_size
+        if model_image_size is not None:
+            config.model_image_size = model_image_size
         return
     
 def load_pretrained_weights_exclude_classifier(new_model, config, freeze_base_model=False):

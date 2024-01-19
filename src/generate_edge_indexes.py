@@ -1,10 +1,10 @@
 import csv
 import torch
-import utils.files.pathutils as pathutils
+import imclaslib.files.pathutils as pathutils
 # Set up system path for relative imports
 pathutils.setup_sys_path()
 
-import utils.dataset.datasetutils as datasetutils
+import imclaslib.dataset.datasetutils as datasetutils
 # Define edge weights for different types of edges
 EDGE_WEIGHTS_DICT = {
     'Usually mutually exclusive': -1.0,

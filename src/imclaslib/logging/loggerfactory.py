@@ -1,6 +1,5 @@
 import logging
 import logging.handlers
-from src.config import config
 import os
 
 class LoggerFactory:
@@ -12,7 +11,7 @@ class LoggerFactory:
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
     @staticmethod
-    def setup_logging(loggername, log_file=None, level=None, config=config):
+    def setup_logging(loggername, config, log_file=None, level=None):
         """
         Set up logging configuration for a logger with the specified name.
 

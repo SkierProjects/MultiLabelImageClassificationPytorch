@@ -1,25 +1,25 @@
-from config import config
-import utils.files.pathutils as pathutils
+from imclaslib.config import Config
+import imclaslib.files.pathutils as pathutils
 # Set up system path for relative imports
 pathutils.setup_sys_path()
 
 import argparse
 import os
 import torch
-from utils.evaluation.modelevaluator import ModelEvaluator
-from utils.dataset.video_predict_dataset import VideoDatasetPredict
-from utils.dataset.images_predict_dataset import ImageDatasetPredict
-from src.utils.dataset import datasetutils
-from utils.files import imageutils
+from imclaslib.evaluation.modelevaluator import ModelEvaluator
+from imclaslib.dataset.video_predict_dataset import VideoDatasetPredict
+from imclaslib.dataset.images_predict_dataset import ImageDatasetPredict
+from imclaslib.dataset import datasetutils
+from imclaslib.files import imageutils
 from torch.utils.data import DataLoader
 from pathlib import Path
-from torchvision.transforms.functional import to_pil_image
 from PIL import Image
-from utils.logging.loggerfactory import LoggerFactory
+from imclaslib.logging.loggerfactory import LoggerFactory
+config = Config("default_config.yml")
 logger = LoggerFactory.setup_logging("logger", log_file=pathutils.combine_path(
     pathutils.get_log_dir_path(), 
-    f"{config.model_name}_{config.image_size}_{config.model_weights}",
-    f"train__{pathutils.get_datetime()}.log"))
+    f"{config.model_name}_{config.model_image_size}_{config.model_weights}",
+    f"train__{pathutils.get_datetime()}.log"), config=config)
 
 def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -27,7 +27,7 @@ def main(args):
     output_folder = args.output_folder or input_path.parent.joinpath('inference_outputs')
 
     os.makedirs(output_folder, exist_ok=True)
-    modelEvaluator = ModelEvaluator.from_file(device, thisconfig=config)
+    modelEvaluator = ModelEvaluator.from_file(device, config=config)
 
     if input_path.is_dir():
         image_paths = [os.path.join(input_path, img) for img in os.listdir(input_path)

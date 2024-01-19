@@ -1,7 +1,7 @@
 import pandas as pd
-from src.utils.dataset.image_dataset import ImageDataset
+from imclaslib.dataset.image_dataset import ImageDataset
 from torch.utils.data import DataLoader
-import utils.files.pathutils as pathutils
+import imclaslib.files.pathutils as pathutils
 
 # Global variable to cache the dataset CSV after being read for the first time.
 dataset_csv = None

@@ -1,7 +1,8 @@
 from sklearn.metrics import f1_score as sklearnf1, precision_score, recall_score
 import numpy as np
 import torch
-from utils.logging.loggerfactory import LoggerFactory
+from imclaslib.logging.loggerfactory import LoggerFactory
+from scipy.special import expit
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 def f1_score(targets, predictions, average='micro'):
@@ -70,7 +71,7 @@ def getpredictions_with_threshold(outputs, threshold=0.5):
     """
 
     # Apply sigmoid to the outputs to get probabilities
-    probabilities = 1 / (1 + np.exp(-outputs))
+    probabilities = expit(outputs)
 
     if threshold is None:
         threshold = 0.5
@@ -159,7 +160,7 @@ def find_best_thresholds_per_class(prediction_outputs, true_labels, metric='f1',
     best_thresholds = np.zeros(num_classes)
 
     # Convert logits to probabilities using the sigmoid function
-    probabilities = 1 / (1 + np.exp(-prediction_outputs))
+    probabilities = expit(prediction_outputs)
 
     for class_idx in range(num_classes):
         best_metric_value_for_class = 0

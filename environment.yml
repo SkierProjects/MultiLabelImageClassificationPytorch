@@ -19,6 +19,7 @@ dependencies:
   - pillow
   - numpy
   - scipy
+  - pyyaml
   - pip
   - pip:
       - torch-summary

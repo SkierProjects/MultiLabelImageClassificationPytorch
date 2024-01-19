@@ -1,28 +1,39 @@
 [
     {	
-		"model_name": "Ensemble_Linear_3",
-		"batch_size": 72,
+		"model_name": "Ensemble_Mean",
+		"batch_size": 128,
+		"model_name_to_load": "",
         "ensemble_model_configs": [
 			{
-				"model_name_to_load": "convnext_large_400_0.7326",
-				"batch_size": 72,
-				"image_size": 400
+				"model_name_to_load": "efficientnet_v2_l_400_0.7764",
+				"batch_size": 128,
+				"model_image_size": 400
 			},
 			{
-				"model_name_to_load": "regnet_y_16gf_400_0.7216",
+				"model_name_to_load": "regnet_y_16gf_400_0.7511",
 				"model_weights": "IMAGENET1K_SWAG_E2E_V1",
-				"batch_size": 72,
-				"image_size": 400
+				"batch_size": 128,
+				"model_image_size": 400
 			},
 			{
-				"model_name_to_load": "resnext101_64x4d_400_0.7220",
-				"batch_size": 72,
-				"image_size": 400
+				"model_name_to_load": "efficientnet_v2_m_400_0.7406",
+				"batch_size": 128,
+				"model_image_size": 400
 			},
 			{
-				"model_name_to_load": "efficientnet_v2_m_400_0.7212",
-				"batch_size": 72,
-				"image_size": 400
+				"model_name_to_load": "convnext_base_400_0.7506",
+				"batch_size": 128,
+				"model_image_size": 400
+			},
+			{
+				"model_name_to_load": "resnext101_64x4d_400_0.7376",
+				"batch_size": 128,
+				"model_image_size": 400
+			},
+			{
+				"model_name_to_load": "convnext_large_400_0.7537",
+				"batch_size": 128,
+				"model_image_size": 400
 			}
 		]
     }

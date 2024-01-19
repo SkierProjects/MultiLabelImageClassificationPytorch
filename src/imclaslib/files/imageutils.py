@@ -1,4 +1,3 @@
-from src.config import config
 import torchvision.transforms as transforms
 import torch
 from PIL import ImageDraw, Image, ImageFont
@@ -8,9 +7,9 @@ import cv2
 from torchvision.transforms.functional import to_pil_image
 import numpy as np
 
-from utils.metrics import metricutils
+from imclaslib.metrics import metricutils
 
-def denormalize_images(images, config=config):
+def denormalize_images(images, config):
     """
     Denormalizes a batch of images using the specified mean and standard deviation.
 
@@ -211,7 +210,7 @@ def preprocess_image(image_path, config):
     
     """
     transforms = Compose([
-        Resize(config.image_size),  # Resize to the input size expected by the model
+        Resize(config.model_image_size),  # Resize to the input size expected by the model
         ToTensor(),          # Convert to PyTorch Tensor
         Normalize(config.dataset_normalization_mean, config.dataset_normalization_std) # Normalize with the same values used in training
     ])

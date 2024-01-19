@@ -1,15 +1,16 @@
-import utils.files.pathutils as pathutils
+import imclaslib.files.pathutils as pathutils
 
 # Set up system path for relative imports
 pathutils.setup_sys_path()
 
-import utils.dataset.datasetutils as datasetutils
+import imclaslib.dataset.datasetutils as datasetutils
 import torch
-from src.utils.logging.loggerfactory import LoggerFactory
-from src.config import config
+from imclaslib.logging.loggerfactory import LoggerFactory
+from imclaslib.config import Config
 
+config = Config("default_config.yml")
 # Set up logging for the training process
-logger = LoggerFactory.setup_logging("logger", log_file=pathutils.combine_path(
+logger = LoggerFactory.setup_logging("logger", config, log_file=pathutils.combine_path(
     pathutils.get_log_dir_path(), 
     f"CalculateDatasetMeanStd",
     f"{pathutils.get_datetime()}.log"))
@@ -50,7 +51,7 @@ def compute_mean_std(dataloader):
     return mean, std
 if __name__ == '__main__':
     # DataLoader for your dataset
-    dataloader = datasetutils.get_data_loader_by_name('train', config, shuffle=True)
+    dataloader = datasetutils.get_data_loader_by_name('train', Config, shuffle=True)
 
     try:
         # Calculate mean and std

@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from utils.models.model_layers import MultiHeadAttention, Attention
+from imclaslib.models.model_layers import MultiHeadAttention, Attention
 
 class MultiLabelClassifier_LabelEmbeddings(nn.Module):
     def __init__(self, base_model, num_classes, embedding_dim, dropout_prob):

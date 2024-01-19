@@ -1,24 +1,23 @@
-import utils.models.modelfactory as modelfactory
+import imclaslib.models.modelfactory as modelfactory
 import torch.nn as nn
 from tqdm import tqdm
 import torch.optim as optim
 import torch
 import gc
 import os
-import utils.files.pathutils as pathutils
-from src.utils.logging.loggerfactory import LoggerFactory
-from src.config import config
-import src.utils.models.modelutils as modelutils
-from utils.metrics import metricutils
-from utils.tensorboard.tensorboardwriter import TensorBoardWriter
-import utils.files.modelloadingutils as modelloadingutils
+import imclaslib.files.pathutils as pathutils
+from imclaslib.logging.loggerfactory import LoggerFactory
+import imclaslib.models.modelutils as modelutils
+from imclaslib.metrics import metricutils
+from imclaslib.tensorboard.tensorboardwriter import TensorBoardWriter
+import imclaslib.files.modelloadingutils as modelloadingutils
 import copy
 import random
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 final_model_path_template = pathutils.combine_path(pathutils.get_output_dir_path(), '{model_name}_{image_size}_{f1_score:.4f}.pth')
 
 class ModelTrainer():
-    def __init__(self, device, trainloader, validloader, testloader, config=config):
+    def __init__(self, device, trainloader, validloader, testloader, config):
         """
         Initializes the ModelTrainer with the given datasets, device, and configuration.
 
@@ -54,7 +53,7 @@ class ModelTrainer():
         if self.config.continue_training and os.path.exists(modelToLoadPath):
             logger.info("Loading the best model...")    
             if self.config.embedding_layer_enabled or self.config.gcn_enabled and self.config.model_to_load_raw_weights != "":
-                self.model, modelData = modelloadingutils.load_pretrained_weights_exclude_classifier(self.model, self.config, False)
+                self.model, modelData = modelloadingutils.load_pretrained_weights_exclude_classifier(self.model, self.config, True)
             else:
                 modelData = modelloadingutils.load_model(modelToLoadPath, self.config)
                 self.model.load_state_dict(modelData['model_state_dict'])
@@ -62,6 +61,7 @@ class ModelTrainer():
 
             self.start_epoch = modelData["epoch"] + 1
             self.epochs = self.epochs + self.start_epoch
+            self.best_f1_score = 0.0
             self.__set_best_model_state(modelData["epoch"])
 
             
@@ -306,7 +306,7 @@ class ModelTrainer():
             'batch_size': self.config.batch_size,
             'optimizer': 'Adam',
             'loss_function': 'BCEWithLogitsLoss',
-            'image_size':  self.config.image_size,
+            'image_size':  self.config.model_image_size,
             'gcn_model_name': self.config.gcn_model_name,
             'gcn_out_channels': self.config.gcn_out_channels,
             'gcn_layers': self.config.gcn_layers,

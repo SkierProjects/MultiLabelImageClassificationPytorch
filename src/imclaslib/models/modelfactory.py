@@ -1,23 +1,17 @@
 from torchvision import models as models
 import torch.nn as nn
 import torch
-from utils.models.ensemble_classifier import EnsembleClassifier
-from utils.models.gcn_classifier import GCNClassifier
-from utils.models.multilabel_classifier import MultiLabelClassifier
-from utils.models.multilabel_embeddinglayer_model import MultiLabelClassifier_LabelEmbeddings
+from imclaslib.models.ensemble_classifier import EnsembleClassifier
+from imclaslib.models.gcn_classifier import GCNClassifier
+from imclaslib.models.multilabel_classifier import MultiLabelClassifier
+from imclaslib.models.multilabel_embeddinglayer_model import MultiLabelClassifier_LabelEmbeddings
 
 def create_model(config):
     """
     Creates a PyTorch multi-label image classification model with optional label embedding.
 
     Parameters:
-        model_name (str): Name of the model to create.
-        requires_grad (bool): Whether the model parameters should be trainable.
-        num_classes (int): Number of classes for the final classification layer.
-        dropout_prob (float): Dropout probability for the new classifier head. Default is 0.0.
-        weights (PretrainedWeights or bool): Pretrained weights to initialize the model. Default is None.
-        add_embedding_layer (bool): Whether to add an embedding layer for label context. Default is False.
-        embedding_dim (int): Dimension of the label embedding. Default is 128.
+        config (config) The config used to load create the model
 
     Returns:
         nn.Module: The PyTorch model with the configured classifier head.

@@ -1,8 +1,7 @@
-from src.config import config
 from torch.utils.tensorboard import SummaryWriter
-import src.utils.files.pathutils as pathutils
-import src.utils.files.imageutils as imageutils
-import src.utils.dataset.datasetutils as datasetutils
+import imclaslib.files.pathutils as pathutils
+import imclaslib.files.imageutils as imageutils
+import imclaslib.dataset.datasetutils as datasetutils
 
 class TensorBoardWriter():
     """
@@ -11,7 +10,7 @@ class TensorBoardWriter():
     Parameters:
         config (module): Configuration module with necessary attributes.
     """
-    def __init__(self, config=config):
+    def __init__(self, config):
         self.config = config
 
         modelAddons = ""
@@ -21,7 +20,7 @@ class TensorBoardWriter():
             modelAddons = f"_GCN_{config.embedding_layer_dimension}_{config.gcn_out_channels}_{config.gcn_layers}_{config.attention_layer_num_heads}"
         log_dir = pathutils.combine_path(
             pathutils.get_tensorboard_log_dir_path(),
-            f'{config.model_name}_{config.model_weights}_{config.image_size}_{config.model_dropout_prob}{modelAddons}'
+            f'{config.model_name}_{config.model_weights}_{config.model_image_size}_{config.model_dropout_prob}{modelAddons}'
         )
         self.writer = SummaryWriter(log_dir)
 

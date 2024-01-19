@@ -1,14 +1,11 @@
-import torch_geometric.nn as GCN
 import torch.nn as nn
 import torch
-from utils.files import pathutils
-from utils.files import modelloadingutils
-import utils.models.modelfactory as modelfactory
-
-from utils.models.model_layers import Attention, MultiHeadAttention
+from imclaslib.files import pathutils
+from imclaslib.files import modelloadingutils
+import imclaslib.models.modelfactory as modelfactory
 
 class EnsembleClassifier(nn.Module):
-    def __init__(self, config, mode='linear'):
+    def __init__(self, config, mode='einsum'):
         super().__init__()
         self.mode = mode
         # We need to use ModuleList so that the models are properly registered as submodules of the ensemble

@@ -1,11 +1,10 @@
 # evaluator.py
 import torch
-from utils.logging.loggerfactory import LoggerFactory
-import utils.files.pathutils as pathutils
-import utils.models.modelfactory as modelfactory
-from src.config import config
-import utils.metrics.metricutils as metricutils
-import utils.files.modelloadingutils as modelloadingutils
+from imclaslib.logging.loggerfactory import LoggerFactory
+import imclaslib.files.pathutils as pathutils
+import imclaslib.models.modelfactory as modelfactory
+import imclaslib.metrics.metricutils as metricutils
+import imclaslib.files.modelloadingutils as modelloadingutils
 from tqdm import tqdm
 import numpy as np
 import torch.nn as nn
@@ -18,7 +17,7 @@ import gc
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 class ModelEvaluator:
-    def __init__(self, model, criterion, device, tensorBoardWriter=None, config=config, model_data=None):
+    def __init__(self, model, criterion, device, config, tensorBoardWriter=None, model_data=None):
         """
         Initializes the ModelEvaluator with a given model, loss criterion, device,
         optional TensorBoard writer, and configuration.
@@ -130,6 +129,7 @@ class ModelEvaluator:
 
         model_data = {
             "epoch": 1,
+            "train_loss": 0,
         }
         
         return cls(

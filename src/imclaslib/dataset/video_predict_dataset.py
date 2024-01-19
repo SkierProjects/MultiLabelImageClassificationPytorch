@@ -1,7 +1,7 @@
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 import cv2
-from utils.logging.loggerfactory import LoggerFactory
+from imclaslib.logging.loggerfactory import LoggerFactory
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 class VideoDatasetPredict(Dataset):
@@ -26,7 +26,7 @@ class VideoDatasetPredict(Dataset):
     def test_transforms(config):
         return transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((config.image_size, config.image_size)),
+            transforms.Resize((config.model_image_size, config.model_image_size)),
             transforms.ToTensor(),
             transforms.Normalize(mean=config.dataset_normalization_mean, std=config.dataset_normalization_std),
         ])
