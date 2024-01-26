@@ -43,7 +43,7 @@ def get_data_loader_by_name(mode, config, shuffle=False):
     global dataset_csv
     dataset_csv = __get_dataset_csv(config)
     data = ImageDataset(dataset_csv, mode=mode, config=config)
-    loader = DataLoader(data, batch_size=config.train_batch_size, shuffle=shuffle)
+    loader = DataLoader(data, batch_size=config.test_batch_size, shuffle=shuffle)
     return loader
 
 def get_dataset_tag_mappings(config):

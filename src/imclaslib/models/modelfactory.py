@@ -73,5 +73,4 @@ def create_model(config):
     else:
         # If not using the embedding layer, create a MultiLabelClassifier with dropout
         model = MultiLabelClassifier(model, config.model_num_classes, config.train_dropout_prob / 100)
-
     return model

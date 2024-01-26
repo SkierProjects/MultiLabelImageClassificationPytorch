@@ -12,6 +12,7 @@ import random
 import os
 import itertools
 import gc
+import copy
 
 # Initialize logger for this module.
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
@@ -29,8 +30,8 @@ class ModelEvaluator:
             tensorBoardWriter (TensorBoardWriter, optional): Writer for TensorBoard logging.
             config (object): An immutable configuration object with necessary parameters.
         """
-        self.model = model
         self.config = config
+        self.model = model
         self.criterion = criterion
         self.device = device
         self.num_classes = config.model_num_classes
@@ -175,17 +176,21 @@ class ModelEvaluator:
             true_labels (numpy.ndarray, optional): Corresponding true labels, if available and requested.
             avg_loss (float, optional): Average loss over dataset, if labels are available.
         """
-        self.model.eval()  # Set the model to evaluation mode
+        model = self.model
+        if self.config.model_fp16:
+            model = model.half()
+        model.eval()  # Set the model to evaluation mode
         prediction_outputs = []  # List to store all raw model outputs
         true_labels = []  # List to store all labels if they are available
         image_paths = [] # List to store all image paths if they are available
         frame_counts = [] # List to store all frame counts if they are available
         total_loss = 0.0  # Initialize total loss
-
         with torch.no_grad():  # Disable gradient calculation for efficiency
             for batch in tqdm(data_loader, total=len(data_loader)):
                 images = batch['image'].to(self.device)
-                outputs = self.model(images)
+                if self.config.model_fp16:
+                    images = images.half()
+                outputs = model(images)
                 prediction_outputs.append(outputs.cpu().numpy())  # Store raw model outputs
                 
                 # Process labels if they are available and requested
@@ -198,7 +203,8 @@ class ModelEvaluator:
                     image_paths.append(batch['image_path'])
                 elif not return_true_labels and 'frame_count' in batch:
                     frame_counts.append(batch['frame_count'])
-
+        if self.config.model_fp16:
+            model = model.to(torch.float32)
         # Concatenate all raw outputs and optionally labels from all batches
         prediction_outputs = np.vstack(prediction_outputs)
         results = {'predictions': prediction_outputs}

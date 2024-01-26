@@ -11,6 +11,7 @@ import imclaslib.models.modelutils as modelutils
 from imclaslib.metrics import metricutils
 from imclaslib.tensorboard.tensorboardwriter import TensorBoardWriter
 import imclaslib.files.modelloadingutils as modelloadingutils
+from torch.cuda.amp import autocast, GradScaler
 import copy
 import random
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
@@ -108,28 +109,40 @@ class ModelTrainer():
         logger.info('Training')
         self.model.train()
         train_running_loss = 0.0
+
+        # Initialize the gradient scaler for mixed precision
+        scaler = GradScaler(enabled=self.config.model_fp16)
+
         for data in tqdm(self.trainloader, total=len(self.trainloader)):
             images, targets = data['image'].to(self.device), data['label'].to(self.device).float()
             self.optimizer.zero_grad()
 
-            if (self.config.model_embedding_layer_enabled or self.config.model_gcn_enabled):
-                label_dropout_rate = 0.9
-                use_labels = random.random() > label_dropout_rate
-                if use_labels:
-                    outputs = self.model(images, targets)
+            # Cast operations to mixed precision
+            with autocast(enabled=self.config.model_fp16):
+                if (self.config.model_embedding_layer_enabled or self.config.model_gcn_enabled):
+                    label_dropout_rate = 0.9
+                    use_labels = random.random() > label_dropout_rate
+                    if use_labels:
+                        outputs = self.model(images, targets)
+                    else:
+                        outputs = self.model(images)
                 else:
                     outputs = self.model(images)
-            else:
-                outputs = self.model(images)
 
-            # Verify that outputs and targets have the same shape
-            if outputs.shape != targets.shape:
-                logger.error(f"Mismatched shapes detected: Outputs shape: {outputs.shape}, Targets shape: {targets.shape}")
-                # Here you could also raise an exception or handle the error in some way
-            loss = self.criterion(outputs, targets)
+                # Verify that outputs and targets have the same shape
+                if outputs.shape != targets.shape:
+                    logger.error(f"Mismatched shapes detected: Outputs shape: {outputs.shape}, Targets shape: {targets.shape}")
+                    # Here you could also raise an exception or handle the error in some way
+                loss = self.criterion(outputs, targets)
+
+            # Scale the loss and call backward() to create scaled gradients
+            scaler.scale(loss).backward()
+
+            # Step optimizer and update the scale for next iteration
+            scaler.step(self.optimizer)
+            scaler.update()
+
             train_running_loss += loss.item()
-            loss.backward()
-            self.optimizer.step()
         
         train_loss = train_running_loss / len(self.trainloader.dataset)
         self.last_train_loss = train_loss

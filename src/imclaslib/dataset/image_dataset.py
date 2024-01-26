@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
-from sklearn.model_selection import train_test_split
 from imclaslib.logging.loggerfactory import LoggerFactory
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
@@ -175,6 +174,14 @@ def stable_hash(x):
     large_prime = 2**61 - 1
     return int(hashlib.sha256(x.encode('utf-8')).hexdigest(), 16) % large_prime
 
+def is_video_frame(identifier):
+    return 'video' in identifier and 'frame' in identifier
+
+def video_frame_group(identifier):
+    if is_video_frame(identifier):
+        return identifier.split('-')[0]  # Returns 'video<id>'
+    return identifier
+
 def stable_split(data, train_percent, valid_percent, test_percent, random_state=None):
     # Ensure that the sum of the sizes is <= 1
     if train_percent + valid_percent + test_percent > 100:
@@ -184,7 +191,7 @@ def stable_split(data, train_percent, valid_percent, test_percent, random_state=
         np.random.seed(random_state)  # Set random seed for reproducibility
 
     # Assign a unique number to each element based on a hash of its identifier
-    hashed_ids = data['identifier'].apply(stable_hash)
+    hashed_ids = data['identifier'].apply(lambda x: stable_hash(video_frame_group(x)))
 
     # Calculate the split thresholds
     train_threshold = np.percentile(hashed_ids, train_percent)

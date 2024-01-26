@@ -1,5 +1,5 @@
 model:
-    name: 'efficientnet_v2_m'
+    name: 'efficientnet_v2_l'
     image_size: 400
     num_classes: 31
     weights: 'DEFAULT'
@@ -7,6 +7,7 @@ model:
     tags_path: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\tags.txt' #specify your path here
     name_to_load: 'best_model'
     attention_layer_num_heads: 8
+    fp16: true
     embedding_layer:
         enabled: false
         dimension: 512
@@ -47,7 +48,7 @@ model:
             -0.5000, -0.5000, -0.5000, -0.5000, -0.5000, -0.5000, -0.5000, -0.5000,
             -0.5000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000]
 dataset: 
-    path: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\Dataset\dataset.csv' #specify your path here
+    path: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\Dataset\dataset_new_pipeline.csv' #specify your path here
     augmentation_level: 0
     normalization_mean: [0.4805, 0.3967, 0.3589]
     normalization_std: [0.3207, 0.2930, 0.2824]
@@ -74,7 +75,7 @@ train:
         factor: 0.1
         min_lr: 1.0e-7
 test:
-    batch_size: 72
+    batch_size: 512
     many_models_path: 'C:\Coding\Testing\PyTorch\MultiClassImageClassification\src\test_many_models.yml' #specify your path here
     
 logs: 

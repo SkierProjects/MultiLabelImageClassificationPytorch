@@ -23,6 +23,7 @@ class Config:
         self.model_attention_layer_num_heads = 8
         self.model_ensemble_combiner = "mean"
         self.model_ensemble_model_configs = None
+        self.model_fp16 = False
 
         #model - embedding layer
         self.model_embedding_layer_enabled = False
