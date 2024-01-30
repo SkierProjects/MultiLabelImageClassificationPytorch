@@ -18,7 +18,7 @@ class Config:
         self.model_num_classes = 31
         self.model_weights = 'DEFAULT'
         self.model_folder = ""
-        self.model_tags_path = ""
+        self.model_tags_path = ""       
         self.model_name_to_load = "best_model"
         self.model_attention_layer_num_heads = 8
         self.model_ensemble_combiner = "mean"
@@ -46,6 +46,8 @@ class Config:
         self.dataset_train_percentage = 80
         self.dataset_valid_percentage = 10
         self.dataset_test_percentage = 10
+        self.dataset_version = 2.0
+        self.dataset_tags_mapping_dict = {}
 
         # training
         self.train_batch_size = 24
@@ -58,6 +60,8 @@ class Config:
         self.train_check_test_loss_epoch_interval = 10
         self.train_many_models_path = ""
         self.train_model_to_load_raw_weights = ""
+        self.train_l2_enabled = False
+        self.train_l2_lambda = 0.01
 
         # training - early stopping
         self.train_early_stopping_patience = 6
@@ -77,6 +81,7 @@ class Config:
         self.logs_level = "DEBUG"
         self.logs_folder = ""
         self.logs_tensorboard_folder = ""
+        self.project_name = ""
 
         if default_config_path:
             self.load_config(default_config_path)

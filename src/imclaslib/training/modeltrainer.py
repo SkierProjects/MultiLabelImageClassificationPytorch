@@ -14,6 +14,7 @@ import imclaslib.files.modelloadingutils as modelloadingutils
 from torch.cuda.amp import autocast, GradScaler
 import copy
 import random
+import wandb
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 class ModelTrainer():
@@ -29,12 +30,37 @@ class ModelTrainer():
             config (module): Configuration module with necessary attributes.
         """
         self.config = config
+        wandb.init(
+            # set the wandb project where this run will be logged
+            project=self.config.project_name,
+            config={
+            'model_name': self.config.model_name,
+            'requires_grad': self.config.train_requires_grad,
+            'model_num_classes': self.config.model_num_classes,
+            'dropout': self.config.train_dropout_prob,
+            'embedding_layer': self.config.model_embedding_layer_enabled,
+            'model_gcn_enabled': self.config.model_gcn_enabled,
+            'train_batch_size': self.config.train_batch_size,
+            'optimizer': 'Adam',
+            'loss_function': 'BCEWithLogitsLoss',
+            'image_size':  self.config.model_image_size,
+            'model_gcn_model_name': self.config.model_gcn_model_name,
+            'model_gcn_out_channels': self.config.model_gcn_out_channels,
+            'model_gcn_layers': self.config.model_gcn_layers,
+            'model_attention_layer_num_heads': self.config.model_attention_layer_num_heads,
+            'model_embedding_layer_dimension': self.config.model_embedding_layer_dimension,
+            'datset_version': self.config.dataset_version
+            }
+        )
         self.device = device
         self.trainloader = trainloader
         self.validloader = validloader
         self.testloader = testloader
         self.model = modelfactory.create_model(self.config).to(device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.train_learning_rate)
+        if self.config.train_l2_enabled:
+            self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.train_learning_rate, weight_decay=self.config.train_l2_lambda)
+        else:
+            self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.train_learning_rate)
 
         # Compute label frequencies and create weights for the loss function
         #self.label_freqs = self.compute_label_frequencies()
@@ -69,10 +95,12 @@ class ModelTrainer():
             self.best_f1_score = 0.0
             self.start_epoch = 0
             self.best_model_state = None
+            self.__set_best_model_state(self.start_epoch)
         self.current_epoch = self.start_epoch - 1
         self.best_f1_score_at_last_reset = 0
         self.patience_counter = 0
         self.patience = self.config.train_early_stopping_patience
+        wandb.watch(self.model)
     
     def __enter__(self):
         """
@@ -99,6 +127,7 @@ class ModelTrainer():
         del self.optimizer
         torch.cuda.empty_cache()
         gc.collect()
+        wandb.finish()
     
     def train(self):
         """
@@ -173,6 +202,7 @@ class ModelTrainer():
         self.lr_scheduler.step(self.last_valid_loss)
         self.current_lr = self.optimizer.param_groups[0]['lr']
         self.tensorBoardWriter.add_scalar('Learning Rate', self.current_lr, self.current_epoch)
+        wandb.log({"Learning Rate": self.current_lr}, step=self.current_epoch)
 
     def log_train_validation_results(self):
         """
@@ -186,6 +216,7 @@ class ModelTrainer():
         self.tensorBoardWriter.add_scalar('Loss/Train', self.last_train_loss, self.current_epoch)
         self.tensorBoardWriter.add_scalar('Loss/Validation', self.last_valid_loss, self.current_epoch)
         self.tensorBoardWriter.add_scalar('F1/Validation', self.last_valid_f1, self.current_epoch)
+        wandb.log({"Loss/Train": self.last_train_loss, "Loss/Validation": self.last_valid_loss, "F1/Validation": self.last_valid_f1}, step=self.current_epoch)
 
     def log_hparam_results(self, test_loss, test_f1):
         """
@@ -205,6 +236,7 @@ class ModelTrainer():
             'test_loss': test_loss
         }
         self.tensorBoardWriter.add_hparams(hparams, metrics)
+        wandb.log(metrics, step=self.current_epoch)
 
     def log_gradients(self):
         """
@@ -324,5 +356,6 @@ class ModelTrainer():
             'model_gcn_layers': self.config.model_gcn_layers,
             'model_attention_layer_num_heads': self.config.model_attention_layer_num_heads,
             'model_embedding_layer_dimension': self.config.model_embedding_layer_dimension,
-            'train_loss': self.last_train_loss
+            'train_loss': self.last_train_loss,
+            'datset_version': self.config.dataset_version
         }

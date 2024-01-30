@@ -13,7 +13,8 @@ dependencies:
   - tensorboard
   - opencv
   - pandas
-  - scikit-learn
+  - scikit-learn=1.4.0
+  - wandb
   - matplotlib
   - tqdm
   - pillow

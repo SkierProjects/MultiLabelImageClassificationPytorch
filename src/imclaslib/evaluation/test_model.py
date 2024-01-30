@@ -1,3 +1,4 @@
+import wandb
 from imclaslib.evaluation.modelevaluator import ModelEvaluator
 from imclaslib.logging.loggerfactory import LoggerFactory
 from imclaslib.tensorboard.tensorboardwriter import TensorBoardWriter
@@ -79,7 +80,12 @@ def evaluate_model(this_config):
         logger.info(f"Validation Best F1: F1: {val_f1_valoptimized}, Precision: {val_precision_valoptimized}, Recall: {val_recall_valoptimized} at Threshold:{val_best_f1_threshold}")
         test_f1_valoptimized, test_precision_valoptimized, test_recall_valoptimized = modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average="micro", datasetSubset="Test", metricMode="Test")
         validtest_f1_valoptimized, validtest_precision_valoptimized, validtest_recall_valoptimized = modelEvaluator.evaluate_predictions(valid_test_loader, validtest_predictions, validtest_correct_labels, epochs, threshold=val_best_f1_threshold, average="micro")
+
+        test_f1_valoptimized_macro, _, _ = modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average="macro", datasetSubset="Test", metricMode="Test")
+        test_f1_valoptimized_weighted, _, _ = modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average="weighted", datasetSubset="Test", metricMode="Test")
+        test_f1_valoptimized_samples, _, _ = modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average="samples", datasetSubset="Test", metricMode="Test")
         logger.info(f"Test Best F1 (measured from Val): F1: {test_f1_valoptimized}, Precision: {test_precision_valoptimized}, Recall: {test_recall_valoptimized} at Threshold:{val_best_f1_threshold}")
+        logger.info(f"Test Best F1 (measured from Val): F1 Macro: {test_f1_valoptimized_macro}, F1 Weighted: {test_f1_valoptimized_weighted}, F1 Samples: {test_f1_valoptimized_samples} at Threshold:{val_best_f1_threshold}")
         logger.info(f"Valid+Test Best F1 (measured from Val): F1: {validtest_f1_valoptimized}, Precision: {validtest_precision_valoptimized}, Recall: {validtest_recall_valoptimized} at Threshold:{val_best_f1_threshold}")
 
         best_f1_thresholds_per_class = metricutils.find_best_thresholds_per_class(valid_predictions, valid_correct_labels)
@@ -93,6 +99,9 @@ def evaluate_model(this_config):
             'F1/Default/Valid+Test': validtest_f1_default,
             'F1/ValOptimizedThreshold/Validation': val_f1_valoptimized,
             'F1/ValOptimizedThreshold/Test': test_f1_valoptimized,
+            'F1/ValOptimizedThreshold/Test/Macro': test_f1_valoptimized_macro,
+            'F1/ValOptimizedThreshold/Test/Weighted': test_f1_valoptimized_weighted,
+            'F1/ValOptimizedThreshold/Test/Samples': test_f1_valoptimized_samples,
             'F1/ValOptimizedThreshold/Valid+Test': validtest_f1_valoptimized,
             'Precision/Default/Validation': val_precision_default,
             'Precision/Default/Test': test_precision_default,
@@ -115,22 +124,32 @@ def evaluate_model(this_config):
             'ImagesPerSecond/Average': avg_images_per_second,
             'Loss/TrainOverTest+ValidRatio': modelEvaluator.model_data["train_loss"] / validtest_loss
         }
+        wandb.log(final_metrics)
         modelEvaluator.tensorBoardWriter.add_scalars_from_dict(final_metrics, epochs)
         modelEvaluator.tensorBoardWriter.add_hparams(hparams, final_metrics)
 
         test_f1s_per_class, _, _ =  modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average=None)
         tagmappings = datasetutils.get_index_to_tag_mapping(this_config)
-        for class_index in range(this_config.model_num_classes):
-            modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Test', test_f1s_per_class[class_index], epochs)
 
         val_test_f1s_per_class, _, _ =  modelEvaluator.evaluate_predictions(valid_test_loader, validtest_predictions, validtest_correct_labels, epochs, threshold=0.5, average=None)
         tagmappings = datasetutils.get_index_to_tag_mapping(this_config)
+        classNames = []
+        testF1s = []
         for class_index in range(this_config.model_num_classes):
             modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Valid+Test', val_test_f1s_per_class[class_index], epochs)
-
+            modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Test', test_f1s_per_class[class_index], epochs)
+            wandb.log({f'F1/ValOptimizedThreshold/Test/Class_{tagmappings[class_index]}': test_f1s_per_class[class_index], f'F1/ValOptimizedThreshold/Valid+Test/Class_{tagmappings[class_index]}': val_test_f1s_per_class[class_index]})
+            classNames.append(tagmappings[class_index])
+            testF1s.append(test_f1s_per_class[class_index])
+        my_table = wandb.Table(columns=classNames, data=testF1s)
+        wandb.log({"F1 Scores by Class": my_table})
         # Prepare to store results by category
         f1_scores_by_category = []
         samples_by_category = []
+
+        GroupIds = []
+        GroupF1s = []
+        GroupSamples = []
         # Calculate F1 scores for each category
         for category in range(len(confidence_thresholds)+1):
             category_mask = (test_confidence_categories == category)
@@ -155,7 +174,13 @@ def evaluate_model(this_config):
             # Log to TensorBoard
             modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Score_By_Confidence_Category/Category_{category}', f1_scores_by_category[-1] if category_f1 else 0, epochs)
             modelEvaluator.tensorBoardWriter.add_scalar(f'Samples_By_Confidence_Category/Category_{category}', samples_by_category[-1] if category_f1 else 0, epochs)
+            GroupIds.append(category)
+            GroupF1s.append(f1_scores_by_category[-1] if category_f1 else 0)
+            GroupSamples.append(samples_by_category[-1] if category_f1 else 0)
+            wandb.log({f'F1_Score_By_Confidence_Category/Category_{category}': f1_scores_by_category[-1] if category_f1 else 0, f'Samples_By_Confidence_Category/Category_{category}': samples_by_category[-1] if category_f1 else 0})
         assert np.sum(samples_by_category) == test_num_images
+        my_table2 = wandb.Table(columns=GroupIds, data=[GroupF1s, GroupSamples])
+        wandb.log({"Data by Categories of Confidence": my_table2})
 
 def get_model_evaluator(config, device):
     if config.model_ensemble_model_configs:

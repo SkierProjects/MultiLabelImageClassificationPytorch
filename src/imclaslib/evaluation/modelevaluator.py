@@ -1,5 +1,6 @@
 # evaluator.py
 import torch
+import wandb
 from imclaslib.logging.loggerfactory import LoggerFactory
 import imclaslib.files.pathutils as pathutils
 import imclaslib.models.modelfactory as modelfactory
@@ -53,6 +54,7 @@ class ModelEvaluator:
         del self.model
         torch.cuda.empty_cache()
         gc.collect()
+        wandb.finish()
 
     @classmethod
     def from_trainer(cls, model_trainer):
@@ -98,6 +100,29 @@ class ModelEvaluator:
         else:
             logger.error(f"Could not find a model at path: {modelToLoadPath}")
             raise ValueError(f"Could not find a model at path: {modelToLoadPath}. Check to ensure the config/json value for model_name_to_load is correct!")
+        
+        wandb.init(
+            # set the wandb project where this run will be logged
+            project=thisconfig.project_name,
+            config={
+                'model_name': thisconfig.model_name,
+                'requires_grad': thisconfig.train_requires_grad,
+                'model_num_classes': thisconfig.model_num_classes,
+                'dropout': thisconfig.train_dropout_prob,
+                'embedding_layer': thisconfig.model_embedding_layer_enabled,
+                'model_gcn_enabled': thisconfig.model_gcn_enabled,
+                'train_batch_size': thisconfig.train_batch_size,
+                'optimizer': 'Adam',
+                'loss_function': 'BCEWithLogitsLoss',
+                'image_size':  thisconfig.model_image_size,
+                'model_gcn_model_name': thisconfig.model_gcn_model_name,
+                'model_gcn_out_channels': thisconfig.model_gcn_out_channels,
+                'model_gcn_layers': thisconfig.model_gcn_layers,
+                'model_attention_layer_num_heads': thisconfig.model_attention_layer_num_heads,
+                'model_embedding_layer_dimension': thisconfig.model_embedding_layer_dimension,
+                'datset_version': thisconfig.dataset_version
+            }
+        )
         
         return cls(
             model=model,

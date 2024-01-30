@@ -29,12 +29,13 @@ def save_final_model(model_state, f1_score, config):
         modelAddons = "_EmbeddingLayer"
     elif config.model_gcn_enabled:
         modelAddons = "_GCN"
-    final_model_path_template = os.path.join(str(pathutils.get_output_dir_path(config)), '{model_name}_{image_size}_{f1_score:.4f}{modelAddons}.pth')
+    final_model_path_template = os.path.join(str(pathutils.get_output_dir_path(config)), '{model_name}_{image_size}_{dataset_version}_{f1_score:.4f}{modelAddons}.pth')
     final_model_path = final_model_path_template.format(
         model_name=config.model_name,
         image_size=config.model_image_size,
         f1_score=f1_score,
-        modelAddons=modelAddons
+        modelAddons=modelAddons,
+        dataset_version=config.dataset_version
     )
     torch.save(model_state, final_model_path)
     logger.info(f"Final model saved as {final_model_path}")
@@ -77,13 +78,14 @@ def add_model_data(checkpoint, config):
     model_data["model_gcn_layers"] = checkpoint.get('model_gcn_layers', config.model_gcn_layers)
     model_data["model_attention_layer_num_heads"] = checkpoint.get('model_attention_layer_num_heads', config.model_attention_layer_num_heads)
     model_data["model_embedding_layer_dimension"] = checkpoint.get('model_embedding_layer_dimension', config.model_embedding_layer_dimension)
+    model_data["dataset_version"] = checkpoint.get('dataset_version', config.dataset_version)
     model_data["train_loss"] = checkpoint.get('train_loss', 0)
 
     
     return model_data
 
 def update_config_from_model_file(config):
-    pattern = r"(.+?)_(\d{3})_\d\.\d{4}"
+    pattern = r"(.+?)_(\d{3})_{\d*}_\d\.\d{4}"
     file_name = config.model_name_to_load
     if not file_name:
         return
@@ -92,8 +94,10 @@ def update_config_from_model_file(config):
         # If there's a match, get the model name and image size
         model_name = match.group(1)  # The first capture group (modelname)
         model_image_size = match.group(2)  # The second capture group (image size)
+        dataset_version = match.group(3)  # The second capture group (image size)
         config.model_name = model_name
         config.model_image_size = int(model_image_size)
+        config.dataset_version = float(dataset_version)
         return
     else:
         model_file_path = pathutils.get_model_to_load_path(config)

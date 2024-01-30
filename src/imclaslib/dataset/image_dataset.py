@@ -5,6 +5,7 @@ import numpy as np
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from imclaslib.logging.loggerfactory import LoggerFactory
+import imclaslib.dataset.datasetutils as datasetutils
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 class ImageDataset(Dataset):
@@ -25,6 +26,8 @@ class ImageDataset(Dataset):
         if mode not in ['train', 'valid', 'test', 'valid+test']:
             raise ValueError("Mode must be 'train', 'valid', 'test', or 'valid+test'.")
         
+        self.label_mapping = config.dataset_tags_mapping_dict
+        self.class_to_idx = datasetutils.get_tag_to_index_mapping(config)
         self.csv = csv
         self.config = config
         self.mode = mode
@@ -49,13 +52,13 @@ class ImageDataset(Dataset):
 
         # Map back to the original data format
         train_names = train_data['filepath'].tolist()
-        train_labels = np.array(train_data.drop(['filepath', 'identifier'], axis=1))
+        train_labels = self.map_labels(train_data)
         
         valid_names = valid_data['filepath'].tolist()
-        valid_labels = np.array(valid_data.drop(['filepath', 'identifier'], axis=1))
+        valid_labels = self.map_labels(valid_data)
 
         test_names = test_data['filepath'].tolist()
-        test_labels = np.array(test_data.drop(['filepath', 'identifier'], axis=1))
+        test_labels = self.map_labels(test_data)
 
         # Concatenate validation and test sets to create valid+test set
         valid_test_names = np.concatenate((valid_names, test_names))
@@ -81,6 +84,25 @@ class ImageDataset(Dataset):
             self.transform = self.test_transforms()
         else:
             raise ValueError("Mode must be 'train', 'valid', 'test', or 'valid+test'.")
+
+    # Apply the label mapping to each subset after splitting
+    def map_labels(self, data):
+        # Initialize a label matrix for the given subset of data
+        label_matrix = np.zeros((len(data), len(self.class_to_idx)), dtype=float)
+        
+        # Map the old and new labels using the dictionary
+        for col in self.csv.columns:
+            if col in self.class_to_idx:
+                # This label is directly in the class_to_idx, so use it as is
+                class_idx = self.class_to_idx[col]
+                label_matrix[:, class_idx] = data[col].values
+            elif col in self.label_mapping:
+                # This label should be mapped to another label
+                mapped_label = self.label_mapping[col]
+                class_idx = self.class_to_idx[mapped_label]
+                # Set the broader category label to true if this or any previously mapped label is true
+                label_matrix[:, class_idx] = np.logical_or(label_matrix[:, class_idx], data[col].values)
+        return label_matrix
 
     # Define a function to scale the augmentation parameters based on input level (0-10)
     def scale_parameter(self, min_val, max_val, level):
