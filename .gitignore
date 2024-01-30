@@ -25,3 +25,4 @@ Dataset/analyzeData.py
 Dataset/removeRemoved.py
 src/default_config.yml
 src/train_many_models.yml
+src/test_many_models*.yml
