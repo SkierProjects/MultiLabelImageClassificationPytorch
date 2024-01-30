@@ -21,3 +21,7 @@ src/train_many_models*.json
 src/test_many_models*.json
 default_config*.yml
 src/default_config.yml
+Dataset/analyzeData.py
+Dataset/removeRemoved.py
+src/default_config.yml
+src/train_many_models.yml
