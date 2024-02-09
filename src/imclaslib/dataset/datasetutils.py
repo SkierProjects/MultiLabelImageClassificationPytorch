@@ -1,3 +1,4 @@
+import csv
 import pandas as pd
 from imclaslib.dataset.image_dataset import ImageDataset
 from torch.utils.data import DataLoader
@@ -93,6 +94,33 @@ def get_index_to_tag_mapping(config):
         for index, tag in enumerate(file):
             index_to_tag[index] = tag.strip()  # Remove any leading/trailing whitespace
     return index_to_tag
+
+def analyze_csv(config):
+
+    csv_file_path = pathutils.get_dataset_path(config)
+    # Initialize dictionaries to store annotation counts and file counts
+    annotation_counts = {}
+    file_counts = {'with_annotations': 0, 'without_annotations': 0}
+
+    with open(csv_file_path, 'r', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        
+        # Iterate through each row in the CSV
+        for row in reader:
+            file_name = row['filepath']
+            
+            # Count files without any annotations
+            if all(value == '0' for key, value in row.items() if key != 'filepath'):
+                file_counts['without_annotations'] += 1
+            else:
+                file_counts['with_annotations'] += 1
+            
+            # Count the usage of each annotation
+            for annotation_name, annotation_value in row.items():
+                if annotation_name != 'filepath':
+                    annotation_counts[annotation_name] = annotation_counts.get(annotation_name, 0) + int(annotation_value)
+
+    return annotation_counts, file_counts
 
 def __get_index_to_tag_mapping(csv):
     """

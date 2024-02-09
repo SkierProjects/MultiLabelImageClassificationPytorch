@@ -72,6 +72,20 @@ def get_datetime():
     """
     return datetime.now().strftime("%Y%m%d_%H%M%S")
 
+def convert_windows_path_to_wsl(windows_path):
+    """
+    Convert a Windows file path to a WSL file path.
+    """
+    # Replace the drive letter with '/mnt/' and lower the case of the drive letter
+    if windows_path[1:3] == ':\\':
+        wsl_path = '/mnt/' + windows_path[0].lower() + windows_path[2:]
+    else:
+        wsl_path = windows_path  # If the path is already in the correct format
+
+    # Replace backslashes with forward slashes
+    wsl_path = wsl_path.replace('\\', '/')
+    return wsl_path
+
 def get_dataset_path(config):
     """
     Gets the path for the dataset file based on the configuration.

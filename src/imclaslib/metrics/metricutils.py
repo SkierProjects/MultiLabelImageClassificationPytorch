@@ -1,8 +1,9 @@
-from sklearn.metrics import f1_score as sklearnf1, precision_score, recall_score
+from sklearn.metrics import f1_score as sklearnf1, precision_score, recall_score, brier_score_loss
 import numpy as np
 import torch
 from imclaslib.logging.loggerfactory import LoggerFactory
 from scipy.special import expit
+from torch.optim import LBFGS
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 def f1_score(targets, predictions, average='micro'):
@@ -41,24 +42,10 @@ def compute_metrics(targets, outputs, average='micro'):
     f1 = sklearnf1(targets, outputs, average=average, zero_division=1)
     return precision, recall, f1
 
-def f1_score_rawoutputs(targets, outputs, threshold=0.5, average='micro'):
-    """
-    Compute F1 score from raw outputs using a threshold.
+def getConfidences(outputs):
+    return torch.sigmoid(outputs).cpu().numpy()
 
-    Parameters:
-    - targets: array-like, true binary labels
-    - outputs: tensor, raw output scores from the classifier
-    - threshold: float, threshold for converting raw scores to binary predictions
-    - average: string, [None, 'micro' (default), 'macro', 'samples', 'weighted']
-
-    Returns:
-    - f1: float, computed F1 score
-    """
-    predictions = getpredictions_with_threshold(outputs, threshold)
-    f1 = f1_score(targets, predictions, average=average)
-    return f1
-
-def getpredictions_with_threshold(outputs, threshold=0.5):
+def getpredictions_with_threshold(outputs, device, threshold=0.5):
     """
     Convert raw output scores to binary predictions using a threshold, using numpy arrays.
 
@@ -71,7 +58,8 @@ def getpredictions_with_threshold(outputs, threshold=0.5):
     """
 
     # Apply sigmoid to the outputs to get probabilities
-    probabilities = expit(outputs)
+    outputs = torch.Tensor(outputs).to(device)
+    probabilities = getConfidences(outputs)
 
     if threshold is None:
         threshold = 0.5
@@ -97,7 +85,11 @@ def convert_labels_to_string(labels, index_to_tag):
     labelstrings = convert_labels_to_strings(labels, index_to_tag)
     return ','.join(labelstrings)
 
-def find_best_threshold(prediction_outputs, true_labels, metric='f1', num_thresholds=100, average='micro'):
+def cumulative_uncertainty(probabilities, certainty_window=0.03):
+    return np.sum(np.where((probabilities > certainty_window) & (probabilities < (1-certainty_window)),
+                                             np.minimum(probabilities - 0.0, 1.0 - probabilities), 0), axis=1)
+
+def find_best_threshold(prediction_outputs, true_labels, device, metric='f1', num_thresholds=100, average='micro'):
     """
     Find the best threshold for binary predictions to optimize the given metric.
 
@@ -120,7 +112,7 @@ def find_best_threshold(prediction_outputs, true_labels, metric='f1', num_thresh
 
     for threshold in np.linspace(0, 1, num_thresholds):
         # Get binary predictions based on the current threshold
-        predictions_binary = getpredictions_with_threshold(prediction_outputs, threshold)
+        predictions_binary = getpredictions_with_threshold(prediction_outputs, device, threshold)
 
         # Compute evaluation metrics
         precision, recall, f1 = compute_metrics(true_labels, predictions_binary, average=average)
@@ -207,3 +199,65 @@ def filter_dict_for_hparams(input_dict):
             filtered_dict[key] = value
 
     return filtered_dict
+
+def multi_label_brier_score(y_true, y_pred, average='macro'):
+    """
+    Calculate the Brier score for multi-label classification with various averaging methods.
+
+    :param y_true: A NumPy array of ground truth labels with shape (num_samples, num_classes).
+    :param y_pred: A NumPy array of predicted logits with shape (num_samples, num_classes).
+    :param average: The averaging method to use ('macro', 'micro', 'weighted', 'samples').
+    :return: The Brier score.
+    """
+    y_pred = getConfidences(y_pred)
+    num_classes = y_true.shape[1]
+    
+    if average == 'macro':
+        # Calculate Brier score for each label and then average
+        brier_scores = [np.mean((y_true[:, i] - y_pred[:, i]) ** 2) for i in range(y_true.shape[1])]
+        return np.mean(brier_scores)
+    
+    elif average == 'micro':
+        # Calculate the mean squared difference between all true labels and predictions
+        return np.mean((y_true - y_pred) ** 2)
+    
+    elif average == 'weighted':
+        # Calculate Brier score for each label, weighted by support (the number of true instances for each label)
+        supports = np.sum(y_true, axis=0)
+        brier_scores = [np.mean((y_true[:, i] - y_pred[:, i]) ** 2) for i in range(y_true.shape[1])]
+        return np.average(brier_scores, weights=supports)
+    
+    elif average == 'samples':
+        # Calculate Brier score for each individual label within each sample and average these
+        brier_scores = np.mean((y_true - y_pred) ** 2, axis=1)
+        return np.mean(brier_scores)
+    
+    else:
+        raise ValueError("The 'average' parameter should be one of 'macro', 'micro', 'weighted', or 'samples'.")
+    
+def temperature_scale(logits, temperature):
+    """
+    Scale the logits by the temperature.
+    """
+    return logits / temperature
+
+def find_optimal_temperature(valid_logits, valid_labels, device):
+    """
+    Find the optimal temperature for multilabel classification using the validation set.
+    """
+    # Initial temperature
+    temperature = torch.nn.Parameter(torch.ones(1, device=device))
+    
+    # Define the loss function and optimizer
+    bce_with_logits_loss = torch.nn.BCEWithLogitsLoss().to(device)
+    optimizer = LBFGS([temperature], lr=0.01, max_iter=50)
+    
+    def eval():
+        loss = bce_with_logits_loss(temperature_scale(valid_logits, temperature), valid_labels)
+        loss.backward()
+        return loss
+    
+    # Find the optimal temperature
+    optimizer.step(eval)
+    
+    return temperature.item()

@@ -120,7 +120,12 @@ class ModelEvaluator:
                 'model_gcn_layers': thisconfig.model_gcn_layers,
                 'model_attention_layer_num_heads': thisconfig.model_attention_layer_num_heads,
                 'model_embedding_layer_dimension': thisconfig.model_embedding_layer_dimension,
-                'datset_version': thisconfig.dataset_version
+                'datset_version': thisconfig.dataset_version,
+                'l2': thisconfig.train_l2_enabled,
+                'l2_lambda': thisconfig.train_l2_lambda,
+                'label_smoothing': thisconfig.train_label_smoothing,
+                'dataset_normalization_mean': thisconfig.dataset_normalization_mean,
+                'dataset_normalization_std': thisconfig.dataset_normalization_std,
             }
         )
         
@@ -179,14 +184,15 @@ class ModelEvaluator:
             image_batch = preprocessed_image.unsqueeze(0)
             outputs = self.model(image_batch)
             if threshold is not None:
-                # Move the outputs to the CPU and convert to NumPy before thresholding
-                outputs_np = outputs.cpu().numpy()
-                outputs_np = metricutils.getpredictions_with_threshold(outputs_np, threshold)
+                outputs_np = metricutils.getpredictions_with_threshold(outputs_np, self.device, threshold)
                 # Wrap the NumPy array back into a PyTorch tensor if necessary
                 outputs = torch.from_numpy(outputs_np)
             # Remove the batch dimension from the outputs before returning
             outputs = outputs.squeeze(0)
         return outputs
+    
+    def compile(self):
+        self.model = torch.compile(self.model, mode="reduce-overhead")
         
     def predict(self, data_loader, return_true_labels=True, threshold=None):
         """
@@ -247,7 +253,7 @@ class ModelEvaluator:
             results['frame_counts'] = frame_counts
 
         if threshold != None:
-            predictions_binary = metricutils.getpredictions_with_threshold(prediction_outputs, threshold)
+            predictions_binary = metricutils.getpredictions_with_threshold(prediction_outputs, self.device, threshold)
             results['predictions'] = predictions_binary
 
         return results
@@ -272,7 +278,7 @@ class ModelEvaluator:
             recall (float): The recall of the model on the dataset.
         """
 
-        predictions_binary = metricutils.getpredictions_with_threshold(prediction_outputs, threshold)
+        predictions_binary = metricutils.getpredictions_with_threshold(prediction_outputs, self.device, threshold)
         # Compute evaluation metrics
         precision, recall, f1 = metricutils.compute_metrics(true_labels, predictions_binary, average=average)
         #if f1 >= 0.9:
@@ -290,7 +296,7 @@ class ModelEvaluator:
 
             selected_predictions = predictions_binary[start_index:end_index]
             selected_predictions_tensor = torch.tensor(selected_predictions, device=self.device, dtype=torch.float32)
-            self.tensorBoardWriter.write_image_test_results(images, labels, selected_predictions_tensor, epoch, metricMode, datasetSubset)
+            #self.tensorBoardWriter.write_image_test_results(images, labels, selected_predictions_tensor, epoch, metricMode, datasetSubset)
 
         # Return the average loss and computed metrics
         return f1, precision, recall

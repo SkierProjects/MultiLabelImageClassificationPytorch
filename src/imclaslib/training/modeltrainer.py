@@ -49,7 +49,10 @@ class ModelTrainer():
             'model_gcn_layers': self.config.model_gcn_layers,
             'model_attention_layer_num_heads': self.config.model_attention_layer_num_heads,
             'model_embedding_layer_dimension': self.config.model_embedding_layer_dimension,
-            'datset_version': self.config.dataset_version
+            'datset_version': self.config.dataset_version,
+            'l2': self.config.train_l2_enabled,
+            'l2_lambda': self.config.train_l2_lambda,
+            'label_smoothing': self.config.train_label_smoothing,
             }
         )
         self.device = device
@@ -129,6 +132,25 @@ class ModelTrainer():
         gc.collect()
         wandb.finish()
     
+    def smooth_labels(self, labels):
+        """
+        Applies label smoothing. Turning the vector of 0s and 1s into a vector of
+        `smoothing / num_classes` and `1 - smoothing + (smoothing / num_classes)`.
+        Args:
+            labels: The binary labels (0 or 1).
+            smoothing: The degree of smoothing (0 means no smoothing).
+        Returns:
+            The smoothed labels.
+        """
+        smoothing = self.config.train_label_smoothing
+        with torch.no_grad():
+            num_classes = labels.size(1)
+            # Create a tensor of `smoothing / num_classes` for each label
+            smooth_value = smoothing / num_classes
+            # Subtract smoothing from the 1s, add it to the 0s
+            labels = labels * (1 - smoothing) + (1 - labels) * smooth_value
+        return labels
+
     def train(self):
         """
         Train the model for one epoch using the provided training dataset.
@@ -162,7 +184,7 @@ class ModelTrainer():
                 if outputs.shape != targets.shape:
                     logger.error(f"Mismatched shapes detected: Outputs shape: {outputs.shape}, Targets shape: {targets.shape}")
                     # Here you could also raise an exception or handle the error in some way
-                loss = self.criterion(outputs, targets)
+                loss = self.criterion(outputs, self.smooth_labels(targets))
 
             # Scale the loss and call backward() to create scaled gradients
             scaler.scale(loss).backward()
@@ -202,7 +224,7 @@ class ModelTrainer():
         self.lr_scheduler.step(self.last_valid_loss)
         self.current_lr = self.optimizer.param_groups[0]['lr']
         self.tensorBoardWriter.add_scalar('Learning Rate', self.current_lr, self.current_epoch)
-        wandb.log({"Learning Rate": self.current_lr}, step=self.current_epoch)
+        wandb.log({"Train/Learning_Rate": self.current_lr}, step=self.current_epoch)
 
     def log_train_validation_results(self):
         """
@@ -217,26 +239,6 @@ class ModelTrainer():
         self.tensorBoardWriter.add_scalar('Loss/Validation', self.last_valid_loss, self.current_epoch)
         self.tensorBoardWriter.add_scalar('F1/Validation', self.last_valid_f1, self.current_epoch)
         wandb.log({"Loss/Train": self.last_train_loss, "Loss/Validation": self.last_valid_loss, "F1/Validation": self.last_valid_f1}, step=self.current_epoch)
-
-    def log_hparam_results(self, test_loss, test_f1):
-        """
-        Log the hyperparameters and test metrics to TensorBoard.
-        This method is used for visualizing the relationship between hyperparameters and the model's performance.
-
-        Parameters:
-            test_loss (float): The loss on the test dataset.
-            test_f1 (float): The F1 score on the test dataset.
-        """
-        hparams = metricutils.filter_dict_for_hparams(self.best_model_state)
-        metrics = {
-            'best_val_f1_score': self.best_f1_score,
-            'final_train_loss': self.last_train_loss if self.last_train_loss else 0,
-            'final_valid_loss': self.last_valid_loss if self.last_valid_loss else 0,
-            'test_f1_score': test_f1,
-            'test_loss': test_loss
-        }
-        self.tensorBoardWriter.add_hparams(hparams, metrics)
-        wandb.log(metrics, step=self.current_epoch)
 
     def log_gradients(self):
         """

@@ -41,12 +41,12 @@ class Config:
         # dataset
         self.dataset_path = ""
         self.dataset_augmentation_level = 0
-        self.dataset_normalization_mean = [0.4805, 0.3967, 0.3589]
-        self.dataset_normalization_std = [0.3207, 0.2930, 0.2824]
+        self.dataset_normalization_mean = None
+        self.dataset_normalization_std = None
         self.dataset_train_percentage = 80
         self.dataset_valid_percentage = 10
         self.dataset_test_percentage = 10
-        self.dataset_version = 2.0
+        self.dataset_version = 1.0
         self.dataset_tags_mapping_dict = {}
 
         # training
@@ -62,6 +62,7 @@ class Config:
         self.train_model_to_load_raw_weights = ""
         self.train_l2_enabled = False
         self.train_l2_lambda = 0.01
+        self.train_label_smoothing = 0.0
 
         # training - early stopping
         self.train_early_stopping_patience = 6
@@ -82,6 +83,8 @@ class Config:
         self.logs_folder = ""
         self.logs_tensorboard_folder = ""
         self.project_name = ""
+
+        self.using_wsl = False
 
         if default_config_path:
             self.load_config(default_config_path)

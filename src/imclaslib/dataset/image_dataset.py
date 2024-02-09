@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
+from imclaslib.files import pathutils
 from imclaslib.logging.loggerfactory import LoggerFactory
 import imclaslib.dataset.datasetutils as datasetutils
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
@@ -31,7 +32,10 @@ class ImageDataset(Dataset):
         self.csv = csv
         self.config = config
         self.mode = mode
+        if config.using_wsl:
+            self.csv['filepath'] = self.csv['filepath'].apply(pathutils.convert_windows_path_to_wsl)
         self.all_image_names = self.csv[:]['filepath']
+        
         self.all_labels = np.array(self.csv.drop(['filepath'], axis=1))
         self.image_size = self.config.model_image_size
         self.csv['identifier'] = self.csv['filepath'].apply(lambda x: x.split('/')[-1])
@@ -96,7 +100,7 @@ class ImageDataset(Dataset):
                 # This label is directly in the class_to_idx, so use it as is
                 class_idx = self.class_to_idx[col]
                 label_matrix[:, class_idx] = data[col].values
-            elif col in self.label_mapping:
+            if col in self.label_mapping:
                 # This label should be mapped to another label
                 mapped_label = self.label_mapping[col]
                 class_idx = self.class_to_idx[mapped_label]
@@ -128,20 +132,30 @@ class ImageDataset(Dataset):
         random_erasing_prob = self.scale_parameter(0, 0.3, augmentation_level)
 
         # Now, create the list of transforms with the scaled parameters
-        transforms_list = [
-            transforms.ToPILImage(),
-            transforms.Resize((self.image_size, self.image_size)),
-            transforms.RandomHorizontalFlip(p=horizontal_flip_prob) if augmentation_level > 0 else None,
-            transforms.ColorJitter(brightness=color_jitter_brightness, contrast=color_jitter_contrast, saturation=color_jitter_saturation) if augmentation_level > 0 else None,
-            transforms.RandomRotation(degrees=rotation_degrees) if augmentation_level > 0 else None,
-            transforms.RandomAffine(degrees=affine_transform_degrees, translate=(affine_transform_translate, affine_transform_translate),
-                                    scale=(affine_transform_scale_min, affine_transform_scale_max)) if augmentation_level > 0 else None,
-            transforms.RandomPerspective(distortion_scale=perspective_distortion_scale, p=0.5) if augmentation_level > 0 else None,
-            transforms.GaussianBlur(kernel_size=(5, 9), sigma=gaussian_blur_sigma) if augmentation_level > 0 else None,
-            transforms.ToTensor(),
-            transforms.RandomErasing(p=random_erasing_prob, scale=(0.02, 0.1), ratio=(0.3, 3.3), value=0) if augmentation_level > 0 else None,
-            transforms.Normalize(mean=self.config.dataset_normalization_mean, std=self.config.dataset_normalization_std),
-        ]
+        transforms_list = []
+        
+
+        if self.config.dataset_normalization_mean == None:
+            transforms_list = [
+                transforms.ToPILImage(),
+                transforms.Resize((self.image_size, self.image_size)),
+                transforms.ToTensor(),
+            ]
+        else:
+            transforms_list = [
+                transforms.ToPILImage(),
+                transforms.Resize((self.image_size, self.image_size)),
+                transforms.RandomHorizontalFlip(p=horizontal_flip_prob) if augmentation_level > 0 else None,
+                transforms.ColorJitter(brightness=color_jitter_brightness, contrast=color_jitter_contrast, saturation=color_jitter_saturation) if augmentation_level > 0 else None,
+                transforms.RandomRotation(degrees=rotation_degrees) if augmentation_level > 0 else None,
+                transforms.RandomAffine(degrees=affine_transform_degrees, translate=(affine_transform_translate, affine_transform_translate),
+                                        scale=(affine_transform_scale_min, affine_transform_scale_max)) if augmentation_level > 0 else None,
+                transforms.RandomPerspective(distortion_scale=perspective_distortion_scale, p=0.5) if augmentation_level > 0 else None,
+                transforms.GaussianBlur(kernel_size=(5, 9), sigma=gaussian_blur_sigma) if augmentation_level > 0 else None,
+                transforms.ToTensor(),
+                transforms.RandomErasing(p=random_erasing_prob, scale=(0.02, 0.1), ratio=(0.3, 3.3), value=0) if augmentation_level > 0 else None,
+                #transforms.Normalize(mean=self.config.dataset_normalization_mean, std=self.config.dataset_normalization_std),
+            ]
 
         # Filter out None transforms (i.e., when augmentation_level is 0)
         transforms_list = [t for t in transforms_list if t is not None]
@@ -153,7 +167,7 @@ class ImageDataset(Dataset):
             transforms.ToPILImage(),
             transforms.Resize((self.image_size, self.image_size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=self.config.dataset_normalization_mean, std=self.config.dataset_normalization_std),
+            #transforms.Normalize(mean=self.config.dataset_normalization_mean, std=self.config.dataset_normalization_std),
         ])
 
     def test_transforms(self):
@@ -161,7 +175,7 @@ class ImageDataset(Dataset):
             transforms.ToPILImage(),
             transforms.Resize((self.image_size, self.image_size)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=self.config.dataset_normalization_mean, std=self.config.dataset_normalization_std),
+            #transforms.Normalize(mean=self.config.dataset_normalization_mean, std=self.config.dataset_normalization_std),
         ])
 
     def __len__(self):
@@ -197,11 +211,12 @@ def stable_hash(x):
     return int(hashlib.sha256(x.encode('utf-8')).hexdigest(), 16) % large_prime
 
 def is_video_frame(identifier):
-    return 'video' in identifier and 'frame' in identifier
+    return 'video' in identifier and 'frame' in identifier and 'studio' in identifier
 
 def video_frame_group(identifier):
     if is_video_frame(identifier):
-        return identifier.split('-')[0]  # Returns 'video<id>'
+        splits = identifier.split('-', maxsplit=1)  
+        return splits[0] + '-' + splits[1] # Returns 'studio_<id>-video_<id>'
     return identifier
 
 def stable_split(data, train_percent, valid_percent, test_percent, random_state=None):
