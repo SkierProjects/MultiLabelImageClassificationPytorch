@@ -37,11 +37,17 @@ class WandbWriter():
             }
         )
     
-    def log(self, *args):
-        wandb.log(*args)
+    def log(self, *args, step=None):
+        if step != None:
+            wandb.log(*args, step=step)
+        else:
+            wandb.log(*args)
 
-    def log_table(self, table_name, columnNames, columnData):
-        wandb.log({table_name: wandb.Table(columns=columnNames, data=columnData)})
+    def log_table(self, table_name, columnNames, columnData, step=None):
+        if step != None:
+            wandb.log({table_name: wandb.Table(columns=columnNames, data=columnData)}, step=step)
+        else:
+            wandb.log({table_name: wandb.Table(columns=columnNames, data=columnData)})
 
     def watch(self, model):
         wandb.watch(model)

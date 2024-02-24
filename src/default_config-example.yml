@@ -1,0 +1,53 @@
+model:
+    name: 'regnet_y_16gf' 
+    weights: 'IMAGENET1K_SWAG_E2E_V1'
+    image_size: 400
+    num_classes: 36
+    #weights: 'DEFAULT'
+    folder: '' #specify your path here
+    tags_path: '' #specify your path here
+    name_to_load: 'best_model'
+    fp16: true
+dataset: 
+    path: '' #specify your path here
+    version: 1.0
+    augmentation_level: 0
+    augmentation_level: 0
+    normalization_mean: [0.5712, 0.4717, 0.4267] #use the values from computemean.py
+    normalization_std: [0.2684, 0.2562, 0.2569] #use the values from computemean.py
+    train_percentage: 80
+    valid_percentage: 10
+    test_percentage: 10
+    preprocess_to_RAM: false
+train:
+    batch_size: 24
+    dropout_prob: 0
+    learning_rate: 1.0e-4
+    num_epochs: 50
+    continue_training: false #if this is set then make sure best_model is the same model type or set another value for model_name_to_load
+    requires_grad: true
+    store_gradients_epoch_interval: 5
+    check_test_loss_epoch_interval: 10
+    many_models_path: '' #specify your path here
+    model_to_load_raw_weights: ''
+    early_stopping:
+        patience: 6
+        threshold: 4.0e-3
+    learningrate_reducer:
+        patience: 2
+        threshold: 2.0e-3
+        factor: 0.1
+        min_lr: 1.0e-7
+    l2:
+        enabled: true
+        lambda: 0.0001
+    label_smoothing: 0.1
+test:
+    batch_size: 128
+    many_models_path: '' #specify your path here
+    
+logs: 
+    level: 'DEBUG'
+    folder: '' #specify your path here
+project_name: '' #your wandb project name
+using_wsl: false #set to true if you're running in WSL and want to use windows paths from inside
