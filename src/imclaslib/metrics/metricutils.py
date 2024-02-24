@@ -89,6 +89,56 @@ def cumulative_uncertainty(probabilities, certainty_window=0.03):
     return np.sum(np.where((probabilities > certainty_window) & (probabilities < (1-certainty_window)),
                                              np.minimum(probabilities - 0.0, 1.0 - probabilities), 0), axis=1)
 
+def uncertainty_metrics(probabilities, certainty_window=0.03):
+    # Calculate cumulative uncertainty with the existing function logic
+    cumulative_uncertainties = cumulative_uncertainty(probabilities, certainty_window)
+
+    # Initialize lists to store the additional metrics
+    max_uncertainties = []
+    mean_uncertainties = []
+    mean_entropies = []
+
+    # Calculate additional metrics for each image
+    for image_probs in probabilities:
+        # Calculate the uncertainty for each class probability in the image
+        uncertainties = np.where(
+            (image_probs > certainty_window) & (image_probs < (1 - certainty_window)),
+            np.minimum(image_probs, 1.0 - image_probs),
+            0
+        )
+
+        # Calculate the entropy for each class probability in the image
+        eps = np.finfo(float).eps  # Avoid division by zero in log
+        image_entropies = -(
+            image_probs * np.log(np.clip(image_probs, eps, 1)) +
+            (1 - image_probs) * np.log(np.clip(1 - image_probs, eps, 1))
+        ) / np.log(2)  # Normalize to log base 2
+
+        # Calculate the mean entropy for the image
+        mean_entropy = np.mean(image_entropies)
+
+        # Find the max uncertainty (which is the max distance from certainty) for the image
+        max_uncertainty_index = np.argmax(uncertainties)
+        max_uncertainty = uncertainties[max_uncertainty_index]
+
+        # Store the max uncertainty and its corresponding class number
+        max_uncertainties.append((max_uncertainty, max_uncertainty_index))
+
+        # Calculate the mean uncertainty for the image
+        mean_uncertainty = np.mean(uncertainties)
+
+        # Append the mean entropy and mean uncertainty to their respective lists
+        mean_entropies.append(mean_entropy)
+        mean_uncertainties.append(mean_uncertainty)
+
+    # Return the results as a dictionary
+    return {
+        'cumulative_uncertainties': cumulative_uncertainties,
+        'max_uncertainties': max_uncertainties,
+        'mean_uncertainties': mean_uncertainties,
+        'mean_entropies': mean_entropies
+    }
+
 def find_best_threshold(prediction_outputs, true_labels, device, metric='f1', num_thresholds=100, average='micro'):
     """
     Find the best threshold for binary predictions to optimize the given metric.

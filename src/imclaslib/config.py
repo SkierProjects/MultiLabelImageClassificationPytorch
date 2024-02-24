@@ -24,6 +24,7 @@ class Config:
         self.model_ensemble_combiner = "mean"
         self.model_ensemble_model_configs = None
         self.model_fp16 = False
+        self.model_temperature = None
 
         #model - embedding layer
         self.model_embedding_layer_enabled = False
@@ -48,6 +49,7 @@ class Config:
         self.dataset_test_percentage = 10
         self.dataset_version = 1.0
         self.dataset_tags_mapping_dict = {}
+        self.dataset_preprocess_to_RAM = False
 
         # training
         self.train_batch_size = 24
@@ -63,6 +65,7 @@ class Config:
         self.train_l2_enabled = False
         self.train_l2_lambda = 0.01
         self.train_label_smoothing = 0.0
+        self.train_compile = False
 
         # training - early stopping
         self.train_early_stopping_patience = 6
@@ -77,6 +80,7 @@ class Config:
         #test
         self.test_batch_size = 72
         self.test_many_models_path = ""
+        self.test_compile = False
 
         #logs
         self.logs_level = "DEBUG"
@@ -178,3 +182,25 @@ class Config:
         else:
             raise ValueError(f"Unsupported configuration file format: {extension}")
         return [Config.from_dict(config, default_config) for config in config_data]
+    
+    @staticmethod
+    def load_config_from_file(file_path, default_config):
+        """
+        Load model configurations from a JSON or yaml file.
+        
+        Parameters:
+        - file_path: str, the path to the JSON or yaml file containing the configurations
+        
+        Returns:
+        - list, the list of configuration objects
+        """
+        extension = str(file_path).split('.')[-1].lower()
+        if extension == 'json':
+            with open(file_path, 'r') as f:
+                config_data = json.load(f)
+        elif extension in ['yaml', 'yml']:
+            with open(file_path, 'r') as f:
+                config_data = yaml.safe_load(f)
+        else:
+            raise ValueError(f"Unsupported configuration file format: {extension}")
+        return Config.from_dict(config_data, default_config)

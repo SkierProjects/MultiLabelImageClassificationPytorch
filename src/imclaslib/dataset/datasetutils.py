@@ -23,18 +23,18 @@ def get_train_valid_test_loaders(config):
     valid_data = ImageDataset(dataset_csv, mode='valid', config=config)
     test_data = ImageDataset(dataset_csv, mode='test', config=config)
 
-    train_loader = DataLoader(train_data, batch_size=config.train_batch_size, shuffle=True)
-    valid_loader = DataLoader(valid_data, batch_size=config.train_batch_size, shuffle=False)
-    test_loader = DataLoader(test_data, batch_size=config.train_batch_size, shuffle=False)
+    train_loader = DataLoader(train_data, batch_size=config.train_batch_size, shuffle=True, num_workers=6, persistent_workers=True, pin_memory=False)
+    valid_loader = DataLoader(valid_data, batch_size=config.train_batch_size, shuffle=False, num_workers=0, persistent_workers=False, pin_memory=False)
+    test_loader = DataLoader(test_data, batch_size=config.train_batch_size, shuffle=False, num_workers=0, persistent_workers=False, pin_memory=False)
 
     return train_loader, valid_loader, test_loader
 
-def get_data_loader_by_name(mode, config, shuffle=False):
+def get_data_loader_by_name(mode, config, shuffle=False, num_workers=1):
     """
     Creates and returns a DataLoader for the specified mode.
 
     Parameters:
-    - mode: A string indicating the mode ('train', 'valid', 'test').
+    - mode: A string indicating the mode ('train', 'valid', 'test', or 'all').
     - config: An immutable configuration object with necessary parameters.
     - shuffle: A boolean indicating whether to shuffle the dataset.
 
@@ -44,7 +44,7 @@ def get_data_loader_by_name(mode, config, shuffle=False):
     global dataset_csv
     dataset_csv = __get_dataset_csv(config)
     data = ImageDataset(dataset_csv, mode=mode, config=config)
-    loader = DataLoader(data, batch_size=config.test_batch_size, shuffle=shuffle)
+    loader = DataLoader(data, batch_size=config.test_batch_size, shuffle=shuffle, pin_memory=False, persistent_workers=False, num_workers=num_workers)
     return loader
 
 def get_dataset_tag_mappings(config):

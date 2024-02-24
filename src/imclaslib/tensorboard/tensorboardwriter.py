@@ -18,7 +18,7 @@ class TensorBoardWriter():
             modelAddons = f"_EmbeddingLayer_{config.model_embedding_layer_dimension}"
         elif self.config.model_gcn_enabled:
             modelAddons = f"_GCN_{config.model_embedding_layer_dimension}_{config.model_gcn_out_channels}_{config.model_gcn_layers}_{config.model_attention_layer_num_heads}"
-        log_dir = pathutils.combine_path(
+        log_dir = pathutils.combine_path(config,
             pathutils.get_tensorboard_log_dir_path(config),
             f'{config.model_name}_{config.model_weights}_{config.model_image_size}_{config.train_dropout_prob}_{config.dataset_version}{modelAddons}'
         )

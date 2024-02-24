@@ -19,7 +19,7 @@ import copy
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 class ModelEvaluator:
-    def __init__(self, model, criterion, device, config, tensorBoardWriter=None, model_data=None):
+    def __init__(self, model, criterion, device, config, wandbWriter=None, model_data=None):
         """
         Initializes the ModelEvaluator with a given model, loss criterion, device,
         optional TensorBoard writer, and configuration.
@@ -28,7 +28,7 @@ class ModelEvaluator:
             model (torch.nn.Module): The model to evaluate.
             criterion (function): The loss function.
             device (torch.device): The device to run evaluation on (CPU or GPU).
-            tensorBoardWriter (TensorBoardWriter, optional): Writer for TensorBoard logging.
+            wandbWriter (WandbWriter, optional): Writer for Wandb logging.
             config (object): An immutable configuration object with necessary parameters.
         """
         self.config = config
@@ -36,8 +36,9 @@ class ModelEvaluator:
         self.criterion = criterion
         self.device = device
         self.num_classes = config.model_num_classes
-        self.tensorBoardWriter = tensorBoardWriter
+        self.wandbWriter = wandbWriter
         self.model_data = model_data
+        self.metrics_enabled = (wandbWriter != None)
 
     def __enter__(self):
         """
@@ -49,12 +50,9 @@ class ModelEvaluator:
         """
         Context management method to close the TensorBoard writer upon exiting the 'with' block.
         """
-        if self.tensorBoardWriter:
-            self.tensorBoardWriter.close_writer()
         del self.model
         torch.cuda.empty_cache()
         gc.collect()
-        wandb.finish()
 
     @classmethod
     def from_trainer(cls, model_trainer):
@@ -73,19 +71,19 @@ class ModelEvaluator:
             criterion=model_trainer.criterion,
             device=model_trainer.device,
             config=model_trainer.config,
-            tensorBoardWriter=model_trainer.tensorBoardWriter,
+            wandbWriter=model_trainer.wandbWriter,
             model_data=model_trainer.best_model_state
         )
     
     @classmethod
-    def from_file(cls, device, thisconfig, tensorBoardWriter=None):
+    def from_file(cls, device, thisconfig, wandbWriter=None):
         """
         Creates a ModelEvaluator instance from a model file by loading in the model and preparing it
           to be run.
 
         Parameters:
             device (torch.device): The device to run evaluation on (CPU or GPU).
-            tensorBoardWriter (TensorBoardWriter, optional): Writer for TensorBoard logging.
+            wandbWriter (WandbWriter, optional): Writer for Wandb logging.
             config (object): An immutable configuration object with necessary parameters.
         """
         
@@ -101,52 +99,24 @@ class ModelEvaluator:
             logger.error(f"Could not find a model at path: {modelToLoadPath}")
             raise ValueError(f"Could not find a model at path: {modelToLoadPath}. Check to ensure the config/json value for model_name_to_load is correct!")
         
-        wandb.init(
-            # set the wandb project where this run will be logged
-            project=thisconfig.project_name,
-            config={
-                'model_name': thisconfig.model_name,
-                'requires_grad': thisconfig.train_requires_grad,
-                'model_num_classes': thisconfig.model_num_classes,
-                'dropout': thisconfig.train_dropout_prob,
-                'embedding_layer': thisconfig.model_embedding_layer_enabled,
-                'model_gcn_enabled': thisconfig.model_gcn_enabled,
-                'train_batch_size': thisconfig.train_batch_size,
-                'optimizer': 'Adam',
-                'loss_function': 'BCEWithLogitsLoss',
-                'image_size':  thisconfig.model_image_size,
-                'model_gcn_model_name': thisconfig.model_gcn_model_name,
-                'model_gcn_out_channels': thisconfig.model_gcn_out_channels,
-                'model_gcn_layers': thisconfig.model_gcn_layers,
-                'model_attention_layer_num_heads': thisconfig.model_attention_layer_num_heads,
-                'model_embedding_layer_dimension': thisconfig.model_embedding_layer_dimension,
-                'datset_version': thisconfig.dataset_version,
-                'l2': thisconfig.train_l2_enabled,
-                'l2_lambda': thisconfig.train_l2_lambda,
-                'label_smoothing': thisconfig.train_label_smoothing,
-                'dataset_normalization_mean': thisconfig.dataset_normalization_mean,
-                'dataset_normalization_std': thisconfig.dataset_normalization_std,
-            }
-        )
-        
         return cls(
             model=model,
             criterion=criterion,
             device=device,
             config=thisconfig,
-            tensorBoardWriter=tensorBoardWriter,
+            wandbWriter=wandbWriter,
             model_data=modelData
         )
     
     @classmethod
-    def from_ensemble(cls, device, thisconfig, tensorBoardWriter=None, loadFromFile=False):
+    def from_ensemble(cls, device, thisconfig, wandbWriter=None, loadFromFile=False):
         """
         Creates a ModelEvaluator instance from a model file by loading in the model and preparing it
           to be run.
 
         Parameters:
             device (torch.device): The device to run evaluation on (CPU or GPU).
-            tensorBoardWriter (TensorBoardWriter, optional): Writer for TensorBoard logging.
+            wandbWriter (WandbWriter, optional): Writer for TensorBoard logging.
             config (object): An immutable configuration object with necessary parameters.
         """
         
@@ -168,7 +138,7 @@ class ModelEvaluator:
             criterion=criterion,
             device=device,
             config=thisconfig,
-            tensorBoardWriter=tensorBoardWriter,
+            wandbWriter=wandbWriter,
             model_data=model_data
         )
     
@@ -192,8 +162,7 @@ class ModelEvaluator:
         return outputs
     
     def compile(self):
-        self.model = torch.compile(self.model, mode="reduce-overhead")
-        
+        self.model = torch.compile(self.model)
     def predict(self, data_loader, return_true_labels=True, threshold=None):
         """
         Perform inference on the given data_loader and return raw predictions.
@@ -285,7 +254,7 @@ class ModelEvaluator:
             #something is wrong
         #    i = 1
         # Log images with predictions to TensorBoard for a random batch, if configured
-        if metricMode is not None and self.tensorBoardWriter is not None and datasetSubset is not None:
+        if metricMode is not None and self.wandbWriter is not None and datasetSubset is not None:
             random_batch_index = random.randint(0, len(data_loader) - 1)
             batch_dict = next(itertools.islice(data_loader, random_batch_index, None))
             images = batch_dict['image']  # Assuming the device transfer happens elsewhere if needed

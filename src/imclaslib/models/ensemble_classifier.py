@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 from imclaslib.files import pathutils
 from imclaslib.files import modelloadingutils
+from imclaslib.metrics import metricutils
 import imclaslib.models.modelfactory as modelfactory
 
 class EnsembleClassifier(nn.Module):
@@ -11,6 +12,7 @@ class EnsembleClassifier(nn.Module):
         self.mode = mode
         # We need to use ModuleList so that the models are properly registered as submodules of the ensemble
         self.models = nn.ModuleList()
+        self.temperatures = []
         for modelconfig in config.model_ensemble_model_configs:
             modelloadingutils.update_config_from_model_file(modelconfig)
             model = modelfactory.create_model(modelconfig)
@@ -20,6 +22,7 @@ class EnsembleClassifier(nn.Module):
             for param in model.parameters():
                 param.requires_grad = False  # Freeze the model parameters
             self.models.append(model)
+            self.temperatures.append(modelconfig.model_temperature)
         
         num_models = len(config.model_ensemble_model_configs)
         num_classes = config.model_num_classes
@@ -31,8 +34,10 @@ class EnsembleClassifier(nn.Module):
 
     def forward(self, x):
         logits_list = []
-        for model in self.models:
+        for i, model in enumerate(self.models):
             model_logits = model(x)
+            if self.temperatures[i] != None:
+                model_logits = metricutils.temperature_scale(model_logits, self.temperatures[i])
             logits_list.append(model_logits)
 
         if self.mode == 'einsum':

@@ -111,7 +111,7 @@ def update_config_from_model_file(config):
         return
     
 def load_pretrained_weights_exclude_classifier(new_model, config, freeze_base_model=False):
-    pretrained_model_path = pathutils.combine_path(pathutils.get_output_dir_path(config), f"{config.train_model_to_load_raw_weights}.pth")
+    pretrained_model_path = pathutils.combine_path(config, pathutils.get_output_dir_path(config), f"{config.train_model_to_load_raw_weights}.pth")
     path = str(pretrained_model_path)
     # Load the state dictionary of the pretrained model
     pretrained_state_dict = torch.load(path)

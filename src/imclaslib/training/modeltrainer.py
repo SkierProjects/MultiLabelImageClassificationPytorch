@@ -8,8 +8,6 @@ import os
 import imclaslib.files.pathutils as pathutils
 from imclaslib.logging.loggerfactory import LoggerFactory
 import imclaslib.models.modelutils as modelutils
-from imclaslib.metrics import metricutils
-from imclaslib.tensorboard.tensorboardwriter import TensorBoardWriter
 import imclaslib.files.modelloadingutils as modelloadingutils
 from torch.cuda.amp import autocast, GradScaler
 import copy
@@ -18,7 +16,7 @@ import wandb
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 class ModelTrainer():
-    def __init__(self, device, trainloader, validloader, testloader, config):
+    def __init__(self, device, trainloader, validloader, testloader, config, wandbWriter=None):
         """
         Initializes the ModelTrainer with the given datasets, device, and configuration.
 
@@ -30,31 +28,8 @@ class ModelTrainer():
             config (module): Configuration module with necessary attributes.
         """
         self.config = config
-        wandb.init(
-            # set the wandb project where this run will be logged
-            project=self.config.project_name,
-            config={
-            'model_name': self.config.model_name,
-            'requires_grad': self.config.train_requires_grad,
-            'model_num_classes': self.config.model_num_classes,
-            'dropout': self.config.train_dropout_prob,
-            'embedding_layer': self.config.model_embedding_layer_enabled,
-            'model_gcn_enabled': self.config.model_gcn_enabled,
-            'train_batch_size': self.config.train_batch_size,
-            'optimizer': 'Adam',
-            'loss_function': 'BCEWithLogitsLoss',
-            'image_size':  self.config.model_image_size,
-            'model_gcn_model_name': self.config.model_gcn_model_name,
-            'model_gcn_out_channels': self.config.model_gcn_out_channels,
-            'model_gcn_layers': self.config.model_gcn_layers,
-            'model_attention_layer_num_heads': self.config.model_attention_layer_num_heads,
-            'model_embedding_layer_dimension': self.config.model_embedding_layer_dimension,
-            'datset_version': self.config.dataset_version,
-            'l2': self.config.train_l2_enabled,
-            'l2_lambda': self.config.train_l2_lambda,
-            'label_smoothing': self.config.train_label_smoothing,
-            }
-        )
+        self.wandbWriter = wandbWriter
+        self.metrics_enabled = (wandbWriter != None)
         self.device = device
         self.trainloader = trainloader
         self.validloader = validloader
@@ -75,8 +50,6 @@ class ModelTrainer():
         self.last_valid_loss = 10000
         self.last_valid_f1 = 0
         self.current_lr = self.config.train_learning_rate
-        # Initialize TensorBoard writer
-        self.tensorBoardWriter = TensorBoardWriter(config)
 
         modelToLoadPath = pathutils.get_model_to_load_path(self.config)
         if self.config.train_continue_training and os.path.exists(modelToLoadPath):
@@ -103,7 +76,11 @@ class ModelTrainer():
         self.best_f1_score_at_last_reset = 0
         self.patience_counter = 0
         self.patience = self.config.train_early_stopping_patience
-        wandb.watch(self.model)
+        
+        if config.using_wsl and config.train_compile:
+            self.compile()
+        if self.metrics_enabled:
+            self.wandbWriter.watch(self.model)
     
     def __enter__(self):
         """
@@ -125,12 +102,10 @@ class ModelTrainer():
             exc_value: Exception value, the exception instance raised.
             traceback: Traceback object with details of where the exception occurred.
         """
-        self.tensorBoardWriter.close_writer()
         del self.model
         del self.optimizer
         torch.cuda.empty_cache()
         gc.collect()
-        wandb.finish()
     
     def smooth_labels(self, labels):
         """
@@ -150,6 +125,9 @@ class ModelTrainer():
             # Subtract smoothing from the 1s, add it to the 0s
             labels = labels * (1 - smoothing) + (1 - labels) * smooth_value
         return labels
+    
+    def compile(self):
+        self.model = torch.compile(self.model)
 
     def train(self):
         """
@@ -221,10 +199,13 @@ class ModelTrainer():
         """
         Check and update the learning rate based on the validation loss. Log the updated learning rate to TensorBoard.
         """
-        self.lr_scheduler.step(self.last_valid_loss)
+        self.lr_scheduler.step(self.last_valid_f1)
+        oldlr = self.current_lr
         self.current_lr = self.optimizer.param_groups[0]['lr']
-        self.tensorBoardWriter.add_scalar('Learning Rate', self.current_lr, self.current_epoch)
-        wandb.log({"Train/Learning_Rate": self.current_lr}, step=self.current_epoch)
+        if self.metrics_enabled:
+            self.wandbWriter.log({"Train/Learning_Rate": self.current_lr}, step=self.current_epoch)
+        if oldlr != self.current_lr:
+            logger.info(f"Reducing learning rate from {oldlr} to {self.current_lr}")
 
     def log_train_validation_results(self):
         """
@@ -235,21 +216,8 @@ class ModelTrainer():
         logger.info(f'Validation Loss: {self.last_valid_loss:.4f}')
         logger.info(f'Validation F1 Score: {self.last_valid_f1:.4f}')
         
-        self.tensorBoardWriter.add_scalar('Loss/Train', self.last_train_loss, self.current_epoch)
-        self.tensorBoardWriter.add_scalar('Loss/Validation', self.last_valid_loss, self.current_epoch)
-        self.tensorBoardWriter.add_scalar('F1/Validation', self.last_valid_f1, self.current_epoch)
-        wandb.log({"Loss/Train": self.last_train_loss, "Loss/Validation": self.last_valid_loss, "F1/Validation": self.last_valid_f1}, step=self.current_epoch)
-
-    def log_gradients(self):
-        """
-        Log the gradients of model parameters to TensorBoard.
-        This is done periodically based on the current epoch to monitor training progress and diagnose issues.
-        """
-        if self.current_epoch % self.config.train_store_gradients_epoch_interval == 0:  # Choose an interval that makes sense for your training regimen.
-            for name, param in self.model.named_parameters():
-                self.tensorBoardWriter.add_histogram(f'Parameters/{name}', param, self.current_epoch)
-                if param.grad is not None:
-                    self.tensorBoardWriter.add_histogram(f'Gradients/{name}', param.grad, self.current_epoch)
+        if self.metrics_enabled:
+            self.wandbWriter.log({"Loss/Train": self.last_train_loss, "Loss/Validation": self.last_valid_loss, "F1/Validation": self.last_valid_f1}, step=self.current_epoch)
         
     def check_early_stopping(self):
         """

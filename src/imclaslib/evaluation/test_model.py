@@ -1,7 +1,6 @@
 import wandb
 from imclaslib.evaluation.modelevaluator import ModelEvaluator
 from imclaslib.logging.loggerfactory import LoggerFactory
-from imclaslib.tensorboard.tensorboardwriter import TensorBoardWriter
 from imclaslib.metrics import metricutils
 import torch
 import imclaslib.dataset.datasetutils as datasetutils
@@ -12,17 +11,20 @@ from scipy.special import expit
 # Set up logging for the training process
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
-def evaluate_model(this_config):
+def evaluate_model(this_config, valid_loader=None, test_loader=None, wandbWriter=None):
     # initialize the computation device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    test_loader = datasetutils.get_data_loader_by_name("test", config=this_config)
-    valid_loader = datasetutils.get_data_loader_by_name("valid", config=this_config)
+    if test_loader == None:
+        test_loader = datasetutils.get_data_loader_by_name("test", config=this_config, num_workers=0)
+    if valid_loader == None:
+        valid_loader = datasetutils.get_data_loader_by_name("valid", config=this_config, num_workers=0)
 
     # intialize the model
-    with get_model_evaluator(this_config, device) as modelEvaluator:
+    with get_model_evaluator(this_config, device, wandbWriter=wandbWriter) as modelEvaluator:
         epochs = modelEvaluator.model_data["epoch"]
-        #modelEvaluator.compile()
+        if this_config.using_wsl and this_config.test_compile:
+            modelEvaluator.compile()
         valid_start_time = time.time()
         valid_results = modelEvaluator.predict(valid_loader)
         valid_end_time = time.time()
@@ -146,9 +148,7 @@ def evaluate_model(this_config):
             'Brier/Test/Samples': test_brier_samples,
             'Temperature/ValOptimized': optimal_temperature
         }
-        wandb.log(final_metrics)
-        modelEvaluator.tensorBoardWriter.add_scalars_from_dict(final_metrics, epochs)
-        modelEvaluator.tensorBoardWriter.add_hparams(hparams, final_metrics)
+        wandbWriter.log(final_metrics)
 
         test_f1s_per_class, test_precision_per_class, test_recall_per_class =  modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average=None)
         tagmappings = datasetutils.get_index_to_tag_mapping(this_config)
@@ -159,13 +159,10 @@ def evaluate_model(this_config):
 
         annotationCounts, fileCounts = datasetutils.analyze_csv(this_config)
         for class_index in range(this_config.model_num_classes):
-            #modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Valid+Test', val_test_f1s_per_class[class_index], epochs)
-            modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Class_{tagmappings[class_index]}/ValOptimizedThreshold/Test', test_f1s_per_class[class_index], epochs)
             testF1s.append([tagmappings[class_index], test_f1s_per_class[class_index], test_precision_per_class[class_index], test_recall_per_class[class_index], annotationCounts[tagmappings[class_index]]])
-        my_table = wandb.Table(columns=["ClassName", "ClassF1", "ClassPrecision", "ClassRecall", "ClassDatasetCount"], data=testF1s)
-        wandb.log({"F1_Scores_by_Class": my_table})
+        wandbWriter.log_table("F1_Scores_by_Class", ["ClassName", "ClassF1", "ClassPrecision", "ClassRecall", "ClassDatasetCount"], testF1s)
 
-        wandb.log({"Dataset/Stats": fileCounts})
+        wandbWriter.log({"Dataset/Stats": fileCounts})
         # Prepare to store results by category
         f1_scores_by_category = []
         samples_by_category = []
@@ -191,19 +188,15 @@ def evaluate_model(this_config):
             # Log results
             logger.info(f"Confidence Category {category} - Images: {samples_by_category[-1]}, F1 Score: {f1_scores_by_category[-1]}")
 
-            # Log to TensorBoard
-            modelEvaluator.tensorBoardWriter.add_scalar(f'F1_Score_By_Confidence_Category/Category_{category}', f1_scores_by_category[-1] if category_f1 else 0, epochs)
-            modelEvaluator.tensorBoardWriter.add_scalar(f'Samples_By_Confidence_Category/Category_{category}', samples_by_category[-1] if category_f1 else 0, epochs)
             data.append([confidence_thresholds[category] if category < confidence_thresholds_len else 1000, f1_scores_by_category[-1] if category_f1 else 0, samples_by_category[-1] if category_f1 else 0])
         assert np.sum(samples_by_category) == test_num_images
-        my_table2 = wandb.Table(columns=["Confidence Threshold", "F1 Score", "Sample Count"], data=data)
-        wandb.log({"Data by Categories of Confidence": my_table2})
+        wandbWriter.log_table("Data by Categories of Confidence", ["Confidence Threshold", "F1 Score", "Sample Count"], data)
 
-def get_model_evaluator(config, device):
+def get_model_evaluator(config, device, wandbWriter):
     if config.model_ensemble_model_configs:
-        return ModelEvaluator.from_ensemble(device, config, TensorBoardWriter(config=config))
+        return ModelEvaluator.from_ensemble(device, config, wandbWriter=wandbWriter)
     else:
-        return ModelEvaluator.from_file(device, config, TensorBoardWriter(config=config))
+        return ModelEvaluator.from_file(device, config, wandbWriter=wandbWriter)
     
 def cumulative_uncertainty(probabilities, certainty_window=0.03):
     return np.sum(np.where((probabilities > certainty_window) & (probabilities < (1-certainty_window)),

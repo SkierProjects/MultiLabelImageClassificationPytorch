@@ -4,6 +4,7 @@
 
 /.vs
 /inference_inputs
+/inference_inputs2
 /outputs
 /tensorboard_logs
 /ven
@@ -26,3 +27,7 @@ Dataset/removeRemoved.py
 src/default_config.yml
 src/train_many_models.yml
 src/test_many_models*.yml
+environment_linux.yml
+annotationresults*.csv
+settings.json
+inference.yml

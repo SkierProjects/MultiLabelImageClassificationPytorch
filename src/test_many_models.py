@@ -3,10 +3,11 @@ import imclaslib.files.pathutils as pathutils
 from imclaslib.evaluation.test_model import evaluate_model
 from imclaslib.files.modelloadingutils import update_config_from_model_file
 from imclaslib.logging.loggerfactory import LoggerFactory
+from imclaslib.wandb.wandb_writer import WandbWriter
 
 # Set up logging for the training process
 config = Config("default_config.yml")
-logger = LoggerFactory.setup_logging("logger", config, log_file=pathutils.combine_path(
+logger = LoggerFactory.setup_logging("logger", config, log_file=pathutils.combine_path(config, 
     pathutils.get_log_dir_path(config), 
     f"{config.model_name}_{config.model_image_size}_{config.model_weights}",
     f"train__{pathutils.get_datetime()}.log"))
@@ -21,10 +22,12 @@ def main(json_file_path):
     """
     configs = Config.load_configs_from_file(json_file_path, config)
     for config_instance in configs:
-        update_config_from_model_file(config_instance)
+        if not config_instance.model_ensemble_model_configs:
+            update_config_from_model_file(config_instance)
         logger.info(f"Starting Evaluating for model: {config_instance.model_name}, image size: {config_instance.model_image_size}, weights: {config_instance.model_weights}")
         try:
-            evaluate_model(config_instance)
+            with WandbWriter(config) as wandb_writer:
+                evaluate_model(config_instance, wandbWriter=wandb_writer)
         except Exception as e:
             logger.error(f"Failed testing for model: {config_instance.model_name}, image size: {config_instance.model_image_size}, weights: {config_instance.model_weights} Inner:{e.strerror}")
 

@@ -8,7 +8,7 @@ from imclaslib.training.modeltrainer import ModelTrainer
 from imclaslib.evaluation.modelevaluator import ModelEvaluator
 from imclaslib.evaluation.test_model import evaluate_model
 
-def train_model(config):
+def train_model(config, wandbWriter=None):
     """
     Train a model based on the provided configuration.
 
@@ -22,9 +22,13 @@ def train_model(config):
     train_loader, valid_loader, test_loader = datasetutils.get_train_valid_test_loaders(config=config)
     try:
         # Initialize the model trainer 
-        with ModelTrainer(device, train_loader, valid_loader, test_loader, config=config) as modelTrainer, ModelEvaluator.from_trainer(modelTrainer) as modelEvaluator:
+        with ModelTrainer(device, train_loader, valid_loader, test_loader, config=config, wandbWriter=wandbWriter) as modelTrainer, ModelEvaluator.from_trainer(modelTrainer) as modelEvaluator:
             # Start the training and validation
             try:
+                if config.using_wsl and config.train_compile:
+                    modelTrainer.compile()
+                if config.using_wsl and config.test_compile:
+                    modelEvaluator.compile()
                 for epoch in range(modelTrainer.start_epoch, modelTrainer.epochs):
                     logger.info(f"Epoch {epoch+1} of {modelTrainer.epochs}")
                     
@@ -42,9 +46,6 @@ def train_model(config):
                     # Update learning rate based on validation loss
                     modelTrainer.learningRateScheduler_check()
                     
-                    # Log model parameter gradients
-                    modelTrainer.log_gradients()
-                    
                     # Evaluate test results at specified intervals
                     if epoch % config.train_check_test_loss_epoch_interval == 0 and epoch != 0:
                         logger.info("Evaluating Test Results")
@@ -54,8 +55,13 @@ def train_model(config):
                         logger.info(f'Test F1 Score: {test_f1:.4f}')
             except KeyboardInterrupt:
                 logger.warn("\nTraining interrupted by user.")
+            except Exception as e:
+                 raise e
             finally:
                 if modelTrainer.best_model_state:
                     modelTrainer.save_final_model()
+    except Exception as e:
+        raise e
     finally:
-                evaluate_model(config)
+        evaluate_model(config, valid_loader, test_loader, wandbWriter=wandbWriter)
+        return train_loader, valid_loader, test_loader
