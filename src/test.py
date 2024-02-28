@@ -15,7 +15,7 @@ logger = LoggerFactory.setup_logging("logger", log_file=pathutils.combine_path(c
 def main():
     # Call the train_model function with the configuration object
     with WandbWriter(config) as wandb_writer:
-        evaluate_model(config, wandb_writer=wandb_writer)
+        evaluate_model(config, wandbWriter=wandb_writer)
 
 if __name__ == '__main__':
     main()

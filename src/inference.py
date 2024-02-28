@@ -28,7 +28,7 @@ def main(args):
     output_folder = args.output_folder or input_path.parent.joinpath('inference_outputs')
 
     os.makedirs(output_folder, exist_ok=True)
-    if thisconfig.model_ensemble_model_configs:
+    if thisconfig.model_ensemble_model_configs != None:
         modelEvaluator = ModelEvaluator.from_ensemble(device, thisconfig=thisconfig)
     else:
         modelEvaluator = ModelEvaluator.from_file(device, thisconfig=thisconfig)
