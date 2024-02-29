@@ -10,7 +10,6 @@ dependencies:
   - torchvision
   - torchaudio
   - pytorch-cuda=12.1
-  - tensorboard
   - opencv
   - pandas
   - scikit-learn=1.4.0
@@ -27,3 +26,4 @@ dependencies:
       - tensorboard
       - torch-tb-profiler
       - torch-geometric
+      - timm

@@ -1,6 +1,7 @@
 from torchvision import models as models
 import torch.nn as nn
 import torch
+import timm
 from imclaslib.models.ensemble_classifier import EnsembleClassifier
 from imclaslib.models.gcn_classifier import GCNClassifier
 from imclaslib.models.multilabel_classifier import MultiLabelClassifier
@@ -19,8 +20,16 @@ def create_model(config):
     if config.model_ensemble_model_configs:
         return EnsembleClassifier(config)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # Load the specified model with the specified pretrained weights if required
-    model = getattr(models, config.model_name)(weights=config.model_weights)
+    # Try to load the model from torchvision.models
+    try:
+        # Use the 'models' module from torchvision
+        model = getattr(models, config.model_name)(weights=config.model_weights)
+    except AttributeError:
+        # If the model is not available in torchvision, try loading it from timm
+        if timm.is_model(config.model_name):
+            model = timm.create_model(config.model_name, pretrained=config.model_weights)
+        else:
+            raise ValueError(f"The model '{config.model_name}' is not available in torchvision or timm.")
     model = model.to(device)
 
     # Freeze or unfreeze the model parameters based on requires_grad
@@ -38,10 +47,17 @@ def create_model(config):
         num_features = model.head.in_features
         model.head = nn.Identity()
     elif hasattr(model, 'heads') and isinstance(model.heads, nn.Sequential):
-        num_features = model.heads[0].in_features
-        model.heads = nn.Identity()
+        num_features = model.heads[-1].in_features
+        model.heads[-1] = nn.Identity()
     else:
-        raise AttributeError(f"The model '{config.model_name}' does not have a recognized classifier head.")
+        # Timm models usually have a 'get_classifier' method to fetch the classifier layer
+        classifier = timm.models.helpers.get_classifier(model)
+        if classifier is not None:
+            num_features = classifier.in_features
+            timm.models.helpers.adaptive_avg_pooling = nn.Identity()
+            timm.models.helpers.adaptive_avg_pooling = nn.Identity()
+        else:
+            raise AttributeError(f"The model '{config.model_name}' does not have a recognized classifier head.")
     model.output_dim = num_features 
 
     # If add_embedding_layer is True, wrap the base model with the MultiLabelClassifier_LabelEmbeddings
