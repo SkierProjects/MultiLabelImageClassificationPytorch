@@ -20,6 +20,8 @@ def create_model(config):
     if config.model_ensemble_model_configs:
         return EnsembleClassifier(config)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    num_features = None
     # Try to load the model from torchvision.models
     try:
         # Use the 'models' module from torchvision
@@ -27,7 +29,13 @@ def create_model(config):
     except AttributeError:
         # If the model is not available in torchvision, try loading it from timm
         if timm.is_model(config.model_name):
-            model = timm.create_model(config.model_name, pretrained=config.model_weights)
+            # Use timm to create the model without the classifier (head)
+            model = timm.create_model(
+                config.model_name,
+                pretrained=True,
+                num_classes=0  # Setting num_classes=0 removes the classifier
+            )
+            num_features = model.num_features  # Get the number of features after pooling
         else:
             raise ValueError(f"The model '{config.model_name}' is not available in torchvision or timm.")
     model = model.to(device)
@@ -37,25 +45,23 @@ def create_model(config):
         param.requires_grad = config.train_requires_grad
 
     # Replace the appropriate classifier head with a new one
-    if hasattr(model, 'classifier') and isinstance(model.classifier, nn.Sequential):
-        num_features = model.classifier[-1].in_features
-        model.classifier[-1] = nn.Identity()
-    elif hasattr(model, 'fc'):
-        num_features = model.fc.in_features
-        model.fc = nn.Identity()
-    elif hasattr(model, 'head'):
-        num_features = model.head.in_features
-        model.head = nn.Identity()
-    elif hasattr(model, 'heads') and isinstance(model.heads, nn.Sequential):
-        num_features = model.heads[-1].in_features
-        model.heads[-1] = nn.Identity()
-    else:
-        # Timm models usually have a 'get_classifier' method to fetch the classifier layer
-        classifier = timm.models.helpers.get_classifier(model)
-        if classifier is not None:
-            num_features = classifier.in_features
-            timm.models.helpers.adaptive_avg_pooling = nn.Identity()
-            timm.models.helpers.adaptive_avg_pooling = nn.Identity()
+    if num_features is None:
+        if hasattr(model, 'classifier') and isinstance(model.classifier, nn.Sequential):
+            num_features = model.classifier[-1].in_features
+            #print(f"Number of input features to the classifier: {num_features}")
+            model.classifier[-1] = nn.Identity()
+        elif hasattr(model, 'fc'):
+            num_features = model.fc.in_features
+            #print(f"Number of input features to the fc: {num_features}")
+            model.fc = nn.Identity()
+        elif hasattr(model, 'head'):
+            num_features = model.head.in_features
+            #print(f"Number of input features to the head: {num_features}")
+            model.head = nn.Identity()
+        elif hasattr(model, 'heads') and isinstance(model.heads, nn.Sequential):
+            num_features = model.heads[-1].in_features
+            #print(f"Number of input features to the heads: {num_features}")
+            model.heads[-1] = nn.Identity()
         else:
             raise AttributeError(f"The model '{config.model_name}' does not have a recognized classifier head.")
     model.output_dim = num_features 
@@ -89,4 +95,5 @@ def create_model(config):
     else:
         # If not using the embedding layer, create a MultiLabelClassifier with dropout
         model = MultiLabelClassifier(model, config.model_num_classes, config.train_dropout_prob / 100)
+        #print(model)
     return model

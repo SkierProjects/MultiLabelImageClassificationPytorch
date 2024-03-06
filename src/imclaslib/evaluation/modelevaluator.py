@@ -6,6 +6,7 @@ import imclaslib.files.pathutils as pathutils
 import imclaslib.models.modelfactory as modelfactory
 import imclaslib.metrics.metricutils as metricutils
 import imclaslib.files.modelloadingutils as modelloadingutils
+from torch.cuda.amp import autocast
 from tqdm import tqdm
 import numpy as np
 import torch.nn as nn
@@ -13,7 +14,6 @@ import random
 import os
 import itertools
 import gc
-import copy
 
 # Initialize logger for this module.
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
@@ -177,8 +177,6 @@ class ModelEvaluator:
             avg_loss (float, optional): Average loss over dataset, if labels are available.
         """
         model = self.model
-        if self.config.model_fp16:
-            model = model.half()
         model.eval()  # Set the model to evaluation mode
         prediction_outputs = []  # List to store all raw model outputs
         true_labels = []  # List to store all labels if they are available
@@ -190,7 +188,8 @@ class ModelEvaluator:
                 images = batch['image'].to(self.device)
                 if self.config.model_fp16:
                     images = images.half()
-                outputs = model(images)
+                with autocast(enabled=self.config.model_fp16):
+                    outputs = model(images)
                 prediction_outputs.append(outputs.cpu().numpy())  # Store raw model outputs
                 
                 # Process labels if they are available and requested
@@ -203,8 +202,6 @@ class ModelEvaluator:
                     image_paths.append(batch['image_path'])
                 elif not return_true_labels and 'frame_count' in batch:
                     frame_counts.append(batch['frame_count'])
-        if self.config.model_fp16:
-            model = model.to(torch.float32)
         # Concatenate all raw outputs and optionally labels from all batches
         prediction_outputs = np.vstack(prediction_outputs)
         results = {'predictions': prediction_outputs}
@@ -246,7 +243,6 @@ class ModelEvaluator:
             precision (float): The precision of the model on the dataset.
             recall (float): The recall of the model on the dataset.
         """
-
         predictions_binary = metricutils.getpredictions_with_threshold(prediction_outputs, self.device, threshold)
         # Compute evaluation metrics
         precision, recall, f1 = metricutils.compute_metrics(true_labels, predictions_binary, average=average)
@@ -266,7 +262,6 @@ class ModelEvaluator:
             selected_predictions = predictions_binary[start_index:end_index]
             selected_predictions_tensor = torch.tensor(selected_predictions, device=self.device, dtype=torch.float32)
             #self.tensorBoardWriter.write_image_test_results(images, labels, selected_predictions_tensor, epoch, metricMode, datasetSubset)
-
         # Return the average loss and computed metrics
         return f1, precision, recall
 

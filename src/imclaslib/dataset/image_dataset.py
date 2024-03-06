@@ -285,12 +285,10 @@ class ImageDataset(Dataset):
                 'image_path': (self.data[index])['image_path']
             }
         image_path = self.image_names[index]
-        image = cv2.imread(image_path)
+        image = Image.open(image_path).convert('RGB')
         if image is None:
             logger.warning(f"Warning: Image not found or corrupted at path: {image_path}")
             return None
-        # convert the image from BGR to RGB color format
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         # apply image transforms
         image = self.transform(image)
         targets = self.labels[index]

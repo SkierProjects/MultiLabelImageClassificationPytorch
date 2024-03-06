@@ -70,7 +70,7 @@ def overlay_predictions(image, predictions, index_to_tag, true_labels=None):
     width, height = image.size
     
     # Set the font size to be proportional to the width of the image
-    font_size = int(width * 0.03)  # You can adjust the 0.03 factor as needed
+    font_size = int(width * 0.01)  # You can adjust the 0.03 factor as needed
     #font = ImageFont.truetype("arial.ttf", font_size)  # You can choose a different font if you like
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", font_size)
 

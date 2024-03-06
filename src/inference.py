@@ -96,12 +96,12 @@ def main(args):
                 break  # Exit the loop if an unexpected error occurs
 
 
-        # Save the images with overlaid predictions
-        #for image_path, pred in zip(flattened_image_paths, predictions):
-        #    original_image = Image.open(image_path)
-        #    annotated_image = imageutils.overlay_predictions(original_image, pred, datasetutils.get_index_to_tag_mapping(thisconfig))
-        #    save_path = os.path.join(output_folder, os.path.basename(image_path))
-        #    annotated_image.save(save_path)
+        #Save the images with overlaid predictions
+        for image_path, pred in zip(flattened_image_paths, predictions):
+           original_image = Image.open(image_path)
+           annotated_image = imageutils.overlay_predictions(original_image, pred, datasetutils.get_index_to_tag_mapping(thisconfig))
+           save_path = os.path.join(output_folder, os.path.basename(image_path))
+           annotated_image.save(save_path)
     elif input_path.is_file():
         if str(input_path).lower().endswith(('.png', '.jpg', '.jpeg')):
             preprocessed_img = ImageDatasetPredict.preprocess_single_image(str(input_path), thisconfig)

@@ -12,6 +12,7 @@ class MultiLabelClassifier(nn.Module):
             nn.Dropout(dropout_prob),
             nn.Linear(base_model.output_dim, num_classes)
         )
+        self.output_dim = num_classes  # Set the output dimension
 
     def forward(self, x):
         # Get the image features from the base model
