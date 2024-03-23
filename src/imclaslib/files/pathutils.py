@@ -134,6 +134,15 @@ def get_train_many_models_file(config):
     """
     return combine_path(config, config.train_many_models_path)
 
+def get_distill_models_file(config):
+    """
+    Gets the path for the JSON file containing configurations for training many models.
+
+    Returns:
+        Path: The path to the 'train_many_models.json' file.
+    """
+    return combine_path(config, config.train_distill_models_path)
+
 def get_test_many_models_file(config):
     """
     Gets the path for the JSON file containing configurations for training many models.

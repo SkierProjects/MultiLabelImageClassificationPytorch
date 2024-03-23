@@ -61,6 +61,7 @@ class Config:
         self.train_store_gradients_epoch_interval = 5
         self.train_check_test_loss_epoch_interval = 10
         self.train_many_models_path = ""
+        self.train_distill_models_path = ""
         self.train_model_to_load_raw_weights = ""
         self.train_l2_enabled = False
         self.train_l2_lambda = 0.01

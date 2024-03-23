@@ -47,7 +47,7 @@ def evaluate_model(this_config, valid_loader=None, test_loader=None, wandbWriter
         test_logits = torch.Tensor(test_predictions).to(device)
         test_predictions = metricutils.temperature_scale(test_logits, optimal_temperature)
 
-        confidence_thresholds = (0.01, 0.2, 0.4, 0.7, 1.0)  # Adjust these thresholds to suit your needs
+        confidence_thresholds = (0.01, 0.02, 0.05, 0.1, 0.2)  # Adjust these thresholds to suit your needs
         test_proabilities = metricutils.getConfidences(test_predictions) #torch.sigmoid(test_predictions).cpu().numpy()
         test_confidence_categories = categorize_predictions(test_proabilities, confidence_thresholds)
 
@@ -100,6 +100,7 @@ def evaluate_model(this_config, valid_loader=None, test_loader=None, wandbWriter
         val_best_f1_threshold, val_f1_valoptimized, val_precision_valoptimized, val_recall_valoptimized = metricutils.find_best_threshold(valid_predictions, valid_correct_labels, device, "f1")
         logger.info(f"Validation Best F1: F1: {val_f1_valoptimized}, Precision: {val_precision_valoptimized}, Recall: {val_recall_valoptimized} at Threshold:{val_best_f1_threshold}")
         test_f1_valoptimized, test_precision_valoptimized, test_recall_valoptimized = modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average="micro", datasetSubset="Test", metricMode="Test")
+        test_f1_valoptimized_no_temp, test_precision_valoptimized_no_temp, test_recall_valoptimized_no_temp = modelEvaluator.evaluate_predictions(test_loader, test_logits, test_correct_labels, epochs, threshold=val_best_f1_threshold, average="micro", datasetSubset="Test", metricMode="Test")
 
         test_f1_valoptimized_macro, _, _ = modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average="macro", datasetSubset="Test", metricMode="Test")
         test_f1_valoptimized_weighted, _, _ = modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average="weighted", datasetSubset="Test", metricMode="Test")
@@ -107,7 +108,7 @@ def evaluate_model(this_config, valid_loader=None, test_loader=None, wandbWriter
         logger.info(f"Test Best F1 (measured from Val): F1: {test_f1_valoptimized}, Precision: {test_precision_valoptimized}, Recall: {test_recall_valoptimized} at Threshold:{val_best_f1_threshold}")
         logger.info(f"Test Best F1 (measured from Val): F1 Macro: {test_f1_valoptimized_macro}, F1 Weighted: {test_f1_valoptimized_weighted}, F1 Samples: {test_f1_valoptimized_samples} at Threshold:{val_best_f1_threshold}")
 
-        #best_f1_thresholds_per_class = metricutils.find_best_thresholds_per_class(valid_predictions, valid_correct_labels)
+        #best_f1_thresholds_per_class = metricutils.find_best_thresholds_per_class(metricutils.getConfidences(valid_predictions), valid_correct_labels)
         #test_f1_valoptimizedperclass, test_precision_valoptimizedperclass, test_recall_valoptimizedperclass = modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=best_f1_thresholds_per_class, average="micro")
         #logger.info(f"Test Best F1 Per Class (Val Optimized): F1: {test_f1_valoptimizedperclass}, Precision: {test_precision_valoptimizedperclass}, Recall: {test_recall_valoptimizedperclass} at Threshold:{best_f1_thresholds_per_class}")
 
@@ -123,6 +124,7 @@ def evaluate_model(this_config, valid_loader=None, test_loader=None, wandbWriter
             'F1/Default/Test/Samples': test_f1_default_samples,
             'F1/ValOptimizedThreshold/Validation': val_f1_valoptimized,
             'F1/ValOptimizedThreshold/Test/Micro': test_f1_valoptimized,
+            'F1/ValOptimizedThreshold/Test/Raw/Micro': test_f1_valoptimized_no_temp,
             'F1/ValOptimizedThreshold/Test/Macro': test_f1_valoptimized_macro,
             'F1/ValOptimizedThreshold/Test/Weighted': test_f1_valoptimized_weighted,
             'F1/ValOptimizedThreshold/Test/Samples': test_f1_valoptimized_samples,
@@ -152,15 +154,18 @@ def evaluate_model(this_config, valid_loader=None, test_loader=None, wandbWriter
 
         test_f1s_per_class, test_precision_per_class, test_recall_per_class =  modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=val_best_f1_threshold, average=None)
         tagmappings = datasetutils.get_index_to_tag_mapping(this_config)
-
-        #val_test_f1s_per_class, _, _ =  modelEvaluator.evaluate_predictions(valid_test_loader, validtest_predictions, validtest_correct_labels, epochs, threshold=0.5, average=None)
-        tagmappings = datasetutils.get_index_to_tag_mapping(this_config)
         testF1s = []
 
         annotationCounts, fileCounts = datasetutils.analyze_csv(this_config)
         for class_index in range(this_config.model_num_classes):
             testF1s.append([tagmappings[class_index], test_f1s_per_class[class_index], test_precision_per_class[class_index], test_recall_per_class[class_index], annotationCounts[tagmappings[class_index]]])
         wandbWriter.log_table("F1_Scores_by_Class", ["ClassName", "ClassF1", "ClassPrecision", "ClassRecall", "ClassDatasetCount"], testF1s)
+
+        testF1s = []
+        test_f1s_per_class_default, test_precision_per_class_default, test_recall_per_class_default =  modelEvaluator.evaluate_predictions(test_loader, test_predictions, test_correct_labels, epochs, threshold=0.5, average=None)
+        for class_index in range(this_config.model_num_classes):
+            testF1s.append([tagmappings[class_index], test_f1s_per_class_default[class_index], test_precision_per_class_default[class_index], test_recall_per_class_default[class_index], annotationCounts[tagmappings[class_index]]])
+        wandbWriter.log_table("F1_Scores_by_Class_Default", ["ClassName", "ClassF1", "ClassPrecision", "ClassRecall", "ClassDatasetCount"], testF1s)
 
         wandbWriter.log({"Dataset/Stats": fileCounts})
         # Prepare to store results by category
@@ -197,10 +202,6 @@ def get_model_evaluator(config, device, wandbWriter):
         return ModelEvaluator.from_ensemble(device, config, wandbWriter=wandbWriter)
     else:
         return ModelEvaluator.from_file(device, config, wandbWriter=wandbWriter)
-    
-def cumulative_uncertainty(probabilities, certainty_window=0.03):
-    return np.sum(np.where((probabilities > certainty_window) & (probabilities < (1-certainty_window)),
-                                             np.minimum(probabilities - 0.0, 1.0 - probabilities), 0), axis=1)
 
 def categorize_predictions(probabilities, thresholds, certainty_window=0.03):
     """
@@ -214,15 +215,15 @@ def categorize_predictions(probabilities, thresholds, certainty_window=0.03):
     - categories: numpy.ndarray, the categories for each image
     """
 
-    cumulative_uncertainty = metricutils.cumulative_uncertainty(probabilities, certainty_window)
+    mean_entropies = metricutils.uncertainty_metrics(probabilities, certainty_window)["mean_entropies"]
     
     # Calculate and print the mean and standard deviation of cumulative uncertainties for debugging
-    mean_uncertainty = np.mean(cumulative_uncertainty)
-    std_uncertainty = np.std(cumulative_uncertainty)
+    mean_uncertainty = np.mean(mean_entropies)
+    std_uncertainty = np.std(mean_entropies)
     print("Mean cumulative uncertainty:", mean_uncertainty)
     print("Standard deviation of cumulative uncertainty:", std_uncertainty)
     
     # Assign confidence categories based on image confidence levels
-    categories = np.digitize(cumulative_uncertainty, thresholds)
+    categories = np.digitize(mean_entropies, thresholds)
     
     return categories

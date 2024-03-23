@@ -95,6 +95,7 @@ class ModelEvaluator:
             logger.info("Loading the best model...")    
             modelData = modelloadingutils.load_model(modelToLoadPath, thisconfig)
             model.load_state_dict(modelData['model_state_dict'])
+            logger.info("Loaded the best model in the Evaluator")
         else:
             logger.error(f"Could not find a model at path: {modelToLoadPath}")
             raise ValueError(f"Could not find a model at path: {modelToLoadPath}. Check to ensure the config/json value for model_name_to_load is correct!")
@@ -162,7 +163,7 @@ class ModelEvaluator:
         return outputs
     
     def compile(self):
-        self.model = torch.compile(self.model)
+        self.model = torch.compile(self.model, mode="max-autotune")
     def predict(self, data_loader, return_true_labels=True, threshold=None):
         """
         Perform inference on the given data_loader and return raw predictions.

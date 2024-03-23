@@ -18,7 +18,7 @@ def f1_score(targets, predictions, average='micro'):
     Returns:
     - f1: float, computed F1 score
     """
-    return sklearnf1(targets, predictions, average=average, zero_division=1)
+    return sklearnf1(targets, predictions, average=average, zero_division=1.0)
 
 def compute_metrics(targets, outputs, average='micro'):
     """
@@ -37,9 +37,9 @@ def compute_metrics(targets, outputs, average='micro'):
     - f1: float, F1 score per class
     """
     
-    precision = precision_score(targets, outputs, average=average, zero_division=1)
-    recall = recall_score(targets, outputs, average=average, zero_division=1)
-    f1 = sklearnf1(targets, outputs, average=average, zero_division=1)
+    precision = precision_score(targets, outputs, average=average, zero_division=1.0)
+    recall = recall_score(targets, outputs, average=average, zero_division=1.0)
+    f1 = sklearnf1(targets, outputs, average=average, zero_division=1.0)
     return precision, recall, f1
 
 def getConfidences(outputs):
@@ -185,7 +185,7 @@ def find_best_threshold(prediction_outputs, true_labels, device, metric='f1', nu
 
     return best_threshold, best_f1, best_precision, best_recall
 
-def find_best_thresholds_per_class(prediction_outputs, true_labels, metric='f1', num_thresholds=100):
+def find_best_thresholds_per_class(probabilities, true_labels, metric='f1', num_thresholds=100):
     """
     Find the best threshold for binary predictions for each class to optimize the given metric.
 
@@ -198,11 +198,8 @@ def find_best_thresholds_per_class(prediction_outputs, true_labels, metric='f1',
     Returns:
         best_thresholds (numpy.ndarray): The threshold value that optimizes the given metric for each class.
     """
-    num_classes = prediction_outputs.shape[1]
+    num_classes = probabilities.shape[1]
     best_thresholds = np.zeros(num_classes)
-
-    # Convert logits to probabilities using the sigmoid function
-    probabilities = expit(prediction_outputs)
 
     for class_idx in range(num_classes):
         best_metric_value_for_class = 0

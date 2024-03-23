@@ -31,3 +31,4 @@ environment_linux.yml
 annotationresults*.csv
 settings.json
 inference.yml
+src/distill_models.yml

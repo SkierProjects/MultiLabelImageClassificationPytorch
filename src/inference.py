@@ -32,7 +32,8 @@ def main(args):
         modelEvaluator = ModelEvaluator.from_ensemble(device, thisconfig=thisconfig)
     else:
         modelEvaluator = ModelEvaluator.from_file(device, thisconfig=thisconfig)
-    if thisconfig.using_wsl and thisconfig.train_compile:
+    if thisconfig.using_wsl and thisconfig.test_compile:
+        logger.info("Compiling model")
         modelEvaluator.compile()
 
     if input_path.is_dir():
@@ -133,7 +134,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run inference on images or videos.')
     parser.add_argument('input_path', type=str, help='Path to an input image, directory of images, or video file.')
     parser.add_argument('--output_folder', type=str, help='Path to save the output predictions.', default=None)
-    parser.add_argument('--time_interval', type=float, help='Interval in seconds of how frequently to process frames from a video.', default=2)
+    parser.add_argument('--time_interval', type=float, help='Interval in seconds of how frequently to process frames from a video.', default=0.5)
 
     args = parser.parse_args()
     main(args)

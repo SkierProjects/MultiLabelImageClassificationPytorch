@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from torchvision.transforms import Compose, Resize, Normalize, ToTensor
 import cv2
 from torchvision.transforms.functional import to_pil_image
+import concurrent.futures
 import numpy as np
 
 from imclaslib.metrics import metricutils
@@ -93,46 +94,55 @@ def overlay_predictions(image, predictions, index_to_tag, true_labels=None):
 
     return image
 
-def overlay_predictions_video(video_path, predictions,frame_counts, index_to_tag, output_path):
-    # Open the input video
+def process_frame(frame, last_prediction, index_to_tag):
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    pil_image = Image.fromarray(frame_rgb)
+    annotated_image = overlay_predictions(pil_image, last_prediction, index_to_tag)
+    frame = cv2.cvtColor(np.array(annotated_image), cv2.COLOR_RGB2BGR)
+    return frame
+
+def overlay_predictions_video(video_path, predictions, frame_counts, index_to_tag, output_path):
     video_capture = cv2.VideoCapture(str(video_path))
     fps = video_capture.get(cv2.CAP_PROP_FPS)
     width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-
-    # Create a VideoWriter object to save the annotated video
     video_writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
-    # Initialize variables to track the most recent predictions
     last_prediction = None
     frame_idx = 0
     pred_idx = 0
+    frames_buffer = []
 
-    # Process the frames and overlay predictions
-    while True:
-        ret, frame = video_capture.read()
-        if not ret:
-            break
-        
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        pil_image = Image.fromarray(frame_rgb)
-        # Update last_prediction if the current frame is one of the predicted frames
-        if pred_idx < len(frame_counts) and frame_idx == frame_counts[pred_idx]:
-            last_prediction = predictions[pred_idx]
-            pred_idx += 1
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
+        while True:
+            ret, frame = video_capture.read()
+            if not ret:
+                break
+            if pred_idx < len(frame_counts) and frame_idx == frame_counts[pred_idx]:
+                last_prediction = predictions[pred_idx]
+                pred_idx += 1
 
-        # If there are predictions available, overlay them on the frame
-        if last_prediction is not None:
-            annotated_image = overlay_predictions(pil_image, last_prediction, index_to_tag)
-            # Convert back to OpenCV image
-            frame = cv2.cvtColor(np.array(annotated_image), cv2.COLOR_RGB2BGR)
+            if last_prediction is not None:
+                frames_buffer.append(frame)
 
-        # Write the frame to the output video
-        video_writer.write(frame)
-        frame_idx += 1
+                # If the buffer size reaches a threshold, process frames in parallel
+                if len(frames_buffer) >= 10:  # Example buffer size
+                    # Process frames in parallel
+                    processed_frames = list(executor.map(lambda f: process_frame(f, last_prediction, index_to_tag), frames_buffer))
+                    # Write processed frames to the output video
+                    for processed_frame in processed_frames:
+                        video_writer.write(processed_frame)
+                    frames_buffer = []
 
-    # Release resources
+            frame_idx += 1
+
+        # Make sure to process the remaining frames in the buffer
+        if frames_buffer:
+            processed_frames = list(executor.map(lambda f: process_frame(f, last_prediction, index_to_tag), frames_buffer))
+            for processed_frame in processed_frames:
+                video_writer.write(processed_frame)
+
     video_capture.release()
     video_writer.release()
 

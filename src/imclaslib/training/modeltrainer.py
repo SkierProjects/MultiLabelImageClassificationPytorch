@@ -12,7 +12,11 @@ import imclaslib.files.modelloadingutils as modelloadingutils
 from torch.cuda.amp import autocast, GradScaler
 import copy
 import random
-import wandb
+import torch.nn.functional as F
+from imclaslib.metrics import metricutils
+from timm.loss import AsymmetricLossMultiLabel
+from imclaslib.models.multilabel_focal_loss import MultiLabelFocalLoss
+from imclaslib.models.multilabel_dice_loss import DiceLoss
 logger = LoggerFactory.get_logger(f"logger.{__name__}")
 
 class ModelTrainer():
@@ -43,7 +47,7 @@ class ModelTrainer():
         # Compute label frequencies and create weights for the loss function
         #self.label_freqs = self.compute_label_frequencies()
         #self.pos_weight = self.compute_loss_weights(self.label_freqs).to(device)
-        self.criterion = nn.BCEWithLogitsLoss()#pos_weight=self.pos_weight)
+        self.criterion = nn.BCEWithLogitsLoss()#MultiLabelFocalLoss()
         self.epochs = self.config.train_num_epochs
         self.lr_scheduler = modelutils.get_learningRate_scheduler(self.optimizer, config)
         self.last_train_loss = 10000
@@ -59,6 +63,7 @@ class ModelTrainer():
             else:
                 modelData = modelloadingutils.load_model(modelToLoadPath, self.config)
                 self.model.load_state_dict(modelData['model_state_dict'])
+                logger.info("Loaded the best model.")   
                 #self.optimizer.load_state_dict(modelData['optimizer_state_dict'])
 
             self.start_epoch = modelData["epoch"] + 1
@@ -177,6 +182,84 @@ class ModelTrainer():
         self.last_train_loss = train_loss
         return train_loss
     
+    def distillation_criterion(self, student_outputs, teacher_outputs, student_targets, alpha=0.5, temperature=1.5):
+        """
+        Calculate the distillation loss for multilabel classification.
+        :param student_outputs: Logits from the student model.
+        :param teacher_outputs: Logits from the teacher model.
+        :param student_targets: Ground truth labels.
+        :param alpha: Weight for combining the soft and hard loss components.
+        :param temperature: Temperature scaling factor for softening probabilities.
+        :return: The combined distillation loss.
+        """
+        # Apply the sigmoid function to get the probabilities since we are dealing with multilabel classification
+        teacher_probs = torch.sigmoid(teacher_outputs / temperature)
+
+        # Calculate the binary cross-entropy loss between the soft targets and the student outputs
+        soft_loss = F.binary_cross_entropy_with_logits(student_outputs / temperature, teacher_probs, reduction='mean')
+
+        # Calculate the binary cross-entropy loss between the true labels and the student outputs
+        hard_loss = F.binary_cross_entropy_with_logits(student_outputs, student_targets, reduction='mean')
+
+        # Combine the soft and hard losses
+        loss = alpha * soft_loss * (temperature ** 2) + (1 - alpha) * hard_loss
+        return loss
+    def distill(self, teacher_model, teacher_trainloader):
+        """
+        Distill knowledge from the teacher model to the student model for one epoch using the provided training dataset.
+        :param teacher_model: The pre-trained teacher model from which knowledge will be transferred.
+        :return: The average training loss for the epoch.
+        """
+        self.current_epoch += 1
+        logger.info('Distillation')
+        self.model.train()
+        teacher_model.eval()
+        train_running_loss = 0.0
+
+        # Initialize the gradient scaler for mixed precision
+        scaler = GradScaler(enabled=self.config.model_fp16)
+
+        # Ensure the student's trainloader and the teacher's trainloader have the same length
+        assert len(self.trainloader) == len(teacher_trainloader), "The student and teacher trainloaders must have the same number of batches."
+
+        for (student_data, teacher_data) in tqdm(zip(self.trainloader, teacher_trainloader), total=len(self.trainloader)):
+            student_images, student_targets = student_data['image'].to(self.device), student_data['label'].to(self.device).float()
+            teacher_images = teacher_data['image'].to(self.device)
+            self.optimizer.zero_grad()
+
+            # Forward pass of the teacher model to obtain soft labels
+            with torch.no_grad():
+                teacher_outputs = teacher_model(teacher_images)
+
+            # Cast operations to mixed precision
+            with autocast(enabled=self.config.model_fp16):
+                student_outputs = self.model(student_images)
+
+                # Verify that outputs and targets have the same shape
+                if student_outputs.shape != teacher_outputs.shape:
+                    logger.error(f"Mismatched shapes detected: Student outputs shape: {student_outputs.shape}, Teacher outputs shape: {teacher_outputs.shape}")
+
+                # Calculate the distillation loss using the teacher's outputs as soft targets
+                # For distillation, you might want to use a different criterion or adjust `self.criterion` to handle teacher-student loss
+                # This might involve a combination of soft targets from the teacher and true labels, depending on your approach
+                if self.config.model_temperature != None:
+                    teacher_outputs = metricutils.temperature_scale(teacher_outputs, self.config.model_temperature)
+                loss = self.distillation_criterion(student_outputs, teacher_outputs, student_targets)
+
+            # Scale the loss and call backward() to create scaled gradients
+            scaler.scale(loss).backward()
+
+            # Step optimizer and update the scale for next iteration
+            scaler.step(self.optimizer)
+            scaler.update()
+
+            train_running_loss += loss.item()
+
+        train_loss = train_running_loss / len(self.trainloader.dataset)
+        self.last_train_loss = train_loss
+        logger.info(f"Epoch {self.current_epoch} - Distillation Loss: {train_loss:.4f}")
+        return train_loss
+
     def validate(self, modelEvaluator, threshold=None):
         """
         Validate the model on the validation dataset using a model evaluator.
